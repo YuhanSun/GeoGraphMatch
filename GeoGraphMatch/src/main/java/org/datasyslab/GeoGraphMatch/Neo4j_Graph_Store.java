@@ -400,4 +400,33 @@ implements Graph_Store_Operation {
         }
         return true;
     }
+    
+    public void SubgraphMatch(Query_Graph query_Graph)//use neo4j query
+	{
+		String query = "match ";
+		
+		query += String.format("(a0:GRAPH_%d)", query_Graph.label_list[0]);
+		for(int i = 1; i < query_Graph.graph.size(); i++)
+		{
+			query += String.format(",(a%d:GRAPH_%d)",i, query_Graph.label_list[i]);
+		}
+		
+		for(int i = 0; i<query_Graph.graph.size(); i++)
+		{
+			for(int j = 0;j<query_Graph.graph.get(i).size();j++)
+			{
+				int neighbor = query_Graph.graph.get(i).get(j);
+				if(neighbor > i)
+					query += String.format(",(a%d)--(a%d)", i, neighbor);
+			}
+		}
+		
+		query += " return id(a0)";
+		for(int i = 1; i<query_Graph.graph.size(); i++)
+			query += String.format(",id(a%d)", i);
+		query += "limit 1000";
+		OwnMethods.Print(query);
+		String result = Neo4j_Graph_Store.Execute(this.resource, query);
+		OwnMethods.Print(result);
+	}
 }

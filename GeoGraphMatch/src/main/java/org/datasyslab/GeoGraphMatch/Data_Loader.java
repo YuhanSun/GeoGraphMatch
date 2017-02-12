@@ -55,6 +55,7 @@ public class Data_Loader {
 				if(line_list[0].equals("v") == false)
 				{
 					OwnMethods.Print("node line does not start with 'v'");
+					return;
 				}
 				int node_id = Integer.parseInt(line_list[1]);
 				int label = Integer.parseInt(line_list[2]);
@@ -74,6 +75,7 @@ public class Data_Loader {
 				if(line_list[0].equals("e") == false)
 				{
 					OwnMethods.Print("edge line does not start with 'e'");
+					return;
 				}
 				int start = Integer.parseInt(line_list[1]);
 				int end = Integer.parseInt(line_list[2]);
@@ -102,8 +104,8 @@ public class Data_Loader {
 
 	public static void LoadGraph()
 	{
-		String graphfile_path = "/home/yuhansun/Documents/GeoGraphMatchData/hprd";
-		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_hprd/data/graph.db";
+		String graphfile_path = "/home/yuhansun/Documents/GeoGraphMatchData/human";
+		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_human/data/graph.db";
 		LoadGraph(graphfile_path, db_path);
 	}
 	
