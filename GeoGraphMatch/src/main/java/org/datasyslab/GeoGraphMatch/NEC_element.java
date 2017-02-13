@@ -1,7 +1,7 @@
 package org.datasyslab.GeoGraphMatch;
 
 public class NEC_element {
-	int label;
+	Integer label;
 	int parent_id;
 	int represent_node;
 
