@@ -3,15 +3,46 @@ package org.datasyslab.GeoGraphMatch;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import javax.management.Query;
-
-import org.neo4j.graphdb.DynamicLabel;
-import org.neo4j.graphdb.Label;
 
 public class Utility {
+	
+	public static int Comparator(int a, int b)
+	{
+		if (a < b) 
+			return -1;
+		else
+			if(a > b)
+				return 1;
+			else 
+				return 0;
+	}
+	
+	public static HashMap<Integer, Integer> Read_Transfer_Table(String table_path)
+	{
+		HashMap<Integer, Integer> transfer_table = new HashMap<Integer, Integer>();
+		BufferedReader reader = null;
+		String line = null;
+		try {
+			while((line = reader.readLine())!=null)
+			{
+				String [] line_list = line.split("\t");
+				int ori_label = Integer.parseInt(line_list[0]);
+				int transfer_label = Integer.parseInt(line_list[1]);
+				if(transfer_label == 0)
+					continue;
+				transfer_table.put(ori_label, transfer_label);
+			}
+			reader.close();
+		} catch (Exception e) {
+			OwnMethods.Print(line);
+			e.printStackTrace();
+		}
+		return transfer_table; 
+	}
 	
 	public static HashMap<Integer, Integer> Preprocess_DataGraph(String datagraph_path)
 	{
@@ -56,11 +87,17 @@ public class Utility {
 		} catch (Exception e) {
 			OwnMethods.Print(line);
 			e.printStackTrace();
+			if(reader!=null)
+				try {
+					reader.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 		}
 		return label_cardinality;
 	}
 	
-	public static ArrayList<Query_Graph> ReadQueryGraphs(String query_path, int read_count)
+	public static ArrayList<Query_Graph> ReadQueryGraphs(String query_path, HashMap<Integer, Integer> transfer_table, int read_count)
 	{
 		ArrayList<Query_Graph> query_Graphs = new ArrayList<Query_Graph>();
 		BufferedReader reader = null;
@@ -90,10 +127,18 @@ public class Utility {
 					line = reader.readLine();
 					line_list = line.split(" ");
 					int node_id = Integer.parseInt(line_list[0]);
+					if(node_id != i)
+					{
+						OwnMethods.Print(String .format("node_id not consistent with line index at %d", i));
+						OwnMethods.Print(line);
+						return null;
+					}
+					
 					int node_label = Integer.parseInt(line_list[1]);
+					int transfer_label = transfer_table.get(node_label);
 					int degree = Integer.parseInt(line_list[2]);
 					
-					query_Graph.label_list[i] = node_label;
+					query_Graph.label_list[i] = transfer_label;
 					ArrayList<Integer> neighbors = new ArrayList<Integer>(degree);
 					for(int j = 0; j<degree; j++)
 					{
@@ -104,6 +149,7 @@ public class Utility {
 				}
 				query_Graphs.add(query_Graph);
 			}
+			reader.close();
 		}
 		catch (Exception e) {
 			OwnMethods.Print(line);
@@ -112,7 +158,7 @@ public class Utility {
 		return query_Graphs;
 	}
 
-	public static ArrayList<Query_Graph> ReadQueryGraphs(String query_path)
+	public static ArrayList<Query_Graph> ReadQueryGraphs(String query_path, HashMap<Integer, Integer> transfer_table)
 	{
 		ArrayList<Query_Graph> query_Graphs = new ArrayList<Query_Graph>();
 		BufferedReader reader = null;
@@ -141,10 +187,18 @@ public class Utility {
 					line = reader.readLine();
 					line_list = line.split(" ");
 					int node_id = Integer.parseInt(line_list[0]);
+					if(node_id != i)
+					{
+						OwnMethods.Print(String .format("node_id not consistent with line index at %d", i));
+						OwnMethods.Print(line);
+						return null;
+					}
+					
 					int node_label = Integer.parseInt(line_list[1]);
+					int transfer_label = transfer_table.get(node_label);
 					int degree = Integer.parseInt(line_list[2]);
 					
-					query_Graph.label_list[i] = node_label;
+					query_Graph.label_list[i] = transfer_label;
 					ArrayList<Integer> neighbors = new ArrayList<Integer>(degree);
 					for(int j = 0; j<degree; j++)
 					{
