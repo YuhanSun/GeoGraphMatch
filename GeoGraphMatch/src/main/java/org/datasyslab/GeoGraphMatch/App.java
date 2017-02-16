@@ -30,8 +30,8 @@ public class App
     	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/hprd25d";
 //    	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/test_query_graph";
 //    	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/human10s";
-        ArrayList<Query_Graph> query_Graphs = Utility.ReadQueryGraphs(query_graphs_path, 1);
-        Neo4j_Graph_Store p_Neo4j_Graph_Store = new Neo4j_Graph_Store();
-        p_Neo4j_Graph_Store.SubgraphMatch(query_Graphs.get(0));
+//        ArrayList<Query_Graph> query_Graphs = Utility.ReadQueryGraphs(query_graphs_path, 1);
+//        Neo4j_Graph_Store p_Neo4j_Graph_Store = new Neo4j_Graph_Store();
+//        p_Neo4j_Graph_Store.SubgraphMatch(query_Graphs.get(0));
     }
 }

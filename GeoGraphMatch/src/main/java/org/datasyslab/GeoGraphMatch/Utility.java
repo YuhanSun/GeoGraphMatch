@@ -10,6 +10,7 @@ import java.util.HashMap;
 
 public class Utility {
 	
+	
 	public static int Comparator(int a, int b)
 	{
 		if (a < b) 
@@ -21,12 +22,32 @@ public class Utility {
 				return 0;
 	}
 	
+	public static int lower_bound(ArrayList<Label_Degree_Node> label_degree_nodes, int low, int high, int value)
+	{
+	    if ( low < 0) return 0;
+	    if (low>=high )
+	    {
+	      if ( value <= label_degree_nodes.get(low).degree ) return low;
+	      return low+1;
+	    }
+	    int mid=(low+high)/2;
+	    if ( value> label_degree_nodes.get(mid).degree)
+	        return lower_bound(label_degree_nodes, mid+1,high,value);
+	    return lower_bound(label_degree_nodes, low, mid, value);
+	}
+	
+	/**
+	 * read transfer table from a file
+	 * @param table_path
+	 * @return
+	 */
 	public static HashMap<Integer, Integer> Read_Transfer_Table(String table_path)
 	{
 		HashMap<Integer, Integer> transfer_table = new HashMap<Integer, Integer>();
 		BufferedReader reader = null;
 		String line = null;
 		try {
+			reader = new BufferedReader(new FileReader(new File(table_path)));
 			while((line = reader.readLine())!=null)
 			{
 				String [] line_list = line.split("\t");
@@ -40,10 +61,16 @@ public class Utility {
 		} catch (Exception e) {
 			OwnMethods.Print(line);
 			e.printStackTrace();
+			return null;
 		}
 		return transfer_table; 
 	}
 	
+	/**
+	 * not used now
+	 * @param datagraph_path
+	 * @return
+	 */
 	public static HashMap<Integer, Integer> Preprocess_DataGraph(String datagraph_path)
 	{
 		BufferedReader reader = null;
@@ -97,14 +124,21 @@ public class Utility {
 		return label_cardinality;
 	}
 	
-	public static ArrayList<Query_Graph> ReadQueryGraphs(String query_path, HashMap<Integer, Integer> transfer_table, int read_count)
+	/**
+	 * read query graphs from a file with specific number
+	 * @param querygraph_path
+	 * @param transfer_table
+	 * @param read_count
+	 * @return
+	 */
+	public static ArrayList<Query_Graph> ReadQueryGraphs(String querygraph_path, HashMap<Integer, Integer> transfer_table, int read_count)
 	{
 		ArrayList<Query_Graph> query_Graphs = new ArrayList<Query_Graph>();
 		BufferedReader reader = null;
 		String line = null;
 		try 
 		{
-			reader = new BufferedReader(new FileReader(new File(query_path)));
+			reader = new BufferedReader(new FileReader(new File(querygraph_path)));
 			for(int current_read_count = 0; current_read_count < read_count; current_read_count++)
 			{
 				line = reader.readLine();
@@ -158,14 +192,20 @@ public class Utility {
 		return query_Graphs;
 	}
 
-	public static ArrayList<Query_Graph> ReadQueryGraphs(String query_path, HashMap<Integer, Integer> transfer_table)
+	/**
+	 * read all query graphs from a file
+	 * @param querygraph_path
+	 * @param transfer_table
+	 * @return
+	 */
+	public static ArrayList<Query_Graph> ReadQueryGraphs(String querygraph_path, HashMap<Integer, Integer> transfer_table)
 	{
 		ArrayList<Query_Graph> query_Graphs = new ArrayList<Query_Graph>();
 		BufferedReader reader = null;
 		String line = null;
 		try 
 		{
-			reader = new BufferedReader(new FileReader(new File(query_path)));
+			reader = new BufferedReader(new FileReader(new File(querygraph_path)));
 			while((line = reader.readLine()) != null)
 			{
 				String [] line_list = line.split(" ");
