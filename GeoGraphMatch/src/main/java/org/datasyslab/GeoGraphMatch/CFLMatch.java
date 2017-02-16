@@ -9,10 +9,12 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.sound.sampled.Line;
 
+import org.apache.lucene.search.FieldCache.IntParser;
 import org.neo4j.register.Register.Int;
 
 public class CFLMatch {
@@ -27,6 +29,21 @@ public class CFLMatch {
 	public int cnt_unique_label;
 	public int cnt_node;
 	
+	public ArrayList<Integer> label_deg_label_pos;
+	public ArrayList<Label_Degree_Node> label_degree_nodes;
+	
+	public int[] core_number_data;
+	public int[] MAX_NB_degree_data;
+	
+	public Pair<Integer, Integer>[] nodes_to_label_info;
+	public int[] nodes_data;
+	
+	public int[] degree_data;
+	/**
+	 * used and initialized in construct function
+	 */
+	public int max_label_counter;
+	
 	//query graph
 	public int[] nodes_label_query;
 	public ArrayList<ArrayList<Integer>> graph;
@@ -37,6 +54,7 @@ public class CFLMatch {
 	public int[] core_number_query;
 	public int[] node_degree_query;
 	public int sum_degree_cur = 0;
+	public int count_global_temp_array_1;
 	
 	public int residual_tree_match_seq_index;
 	public int[] residual_tree_match_seq;
@@ -61,19 +79,13 @@ public class CFLMatch {
 	public Core_query_tree_node[] core_query_tree;
 	
 	public int simulation_sequence_index;
-	public ArrayList<Integer> simulation_sequence;
+	public ArrayList<Integer> simulation_sequence;	//needs to be sorted
 	
 	public ArrayList<Pair<Integer, Integer>> level_index;
 	public int[] BFS_level_query;
 	public int[] BFS_parent_query;
 	
 	public int root_node_id;
-	
-	public NodeIndexUnit[] indexSet;
-	
-	public int NLF_size = -1;
-	public int[] NLF_array;	//for query // neighborhood label array
-	public int[] NLF_check; //for data
 	
 	//variables in main
 	public int nte_array_for_matching_unit_index = 0;
@@ -86,34 +98,72 @@ public class CFLMatch {
 	public int core_tree_node_nte_array_index = 0;
 	public int[] core_tree_node_nte_array;
 	
-	//the two is not used actually
+	//the two are not used actually
 	public int exploreCRSequence_indx = 0;
 	public int[] exploreCRSequence;
 	
-	public CFLMatch(HashMap<Integer, Integer> p_label_cardinality) {
-		this.label_cardinality = p_label_cardinality;
-		this.cnt_unique_label = p_label_cardinality.size();
-	}
+	public NodeIndexUnit[] indexSet;
+	public ArrayList<Pair<Integer, Integer>> seq_edge_this_level;
 	
-	public void Initialize_DataGraph_Parameter()
-	{
-		Set entrySet = label_cardinality.entrySet();
-		Iterator it = entrySet.iterator();
-		while(it.hasNext()){
-			Map.Entry me = (Map.Entry)it.next();
-			cnt_node += Integer.valueOf(me.getValue().toString());
-		}
+	public int NLF_size = -1;
+	public int[] NLF_array;	//for query // neighborhood label array
+	public int[] NLF_check; //for data
+	
+	public int[] simulation_check_array;
+	
+	public int[] array_to_clean;
+	public int to_clean_index;
+	
+	public int[] flag_prelin_char;
+	public int count_index_array_for_indexSet;
+	public int[] flag_child_cand;
+	public int[] index_array_for_indexSet;
+	
+	public CFLMatch(Data_Graph data_Graph) {
+		this.label_cardinality = data_Graph.label_cardinality;
+		this.cnt_unique_label = label_cardinality.size();
+		
+		this.max_label_counter = 0;
+		for( int cardinality : label_cardinality.values())
+			if(cardinality > max_label_counter)
+				max_label_counter = cardinality;
+		
+		//these variables will be null without explicitly call compute function in Data_Graph
+		this.label_deg_label_pos = data_Graph.label_deg_label_pos;
+		this.label_degree_nodes = data_Graph.label_degree_nodes;
+		this.core_number_data =  data_Graph.core_number_data;
+		this.MAX_NB_degree_data = data_Graph.MAX_NB_degree_data;
+		
+		this.nodes_to_label_info = data_Graph.nodes_to_label_info;
+		this.nodes_data = data_Graph.nodes_data;
+		
+		this.degree_data = data_Graph.degree_data;
 	}
 	
 	public static void main(String[] args) {
-		String datagraph_path = "/home/yuhansun/Documents/GeoGraphMatchData/hprd";
-		HashMap<Integer, Integer> p_label_cardinality = Utility.Preprocess_DataGraph(datagraph_path);
-		String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/hprd25d";
-    	//        	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/test_query_graph";
-    	//        	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/human10s";
-    	ArrayList<Query_Graph> query_Graphs = Utility.ReadQueryGraphs(query_graphs_path, 1);
-    	CFLMatch cflMatch = new CFLMatch(p_label_cardinality);
-    	cflMatch.SubgraphMatch(query_Graphs.get(0));
+		HashMap<Integer, Integer> transfer_table = null;
+		Data_Graph data_Graph = null;
+		try {
+			String datagraph_path = "/home/yuhansun/Documents/GeoGraphMatchData/hprd";
+			String transfer_table_path = "/home/yuhansun/Documents/GeoGraphMatchData/transfertable_hprd.txt";
+			String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/hprd25d";
+	    	//        	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/test_query_graph";
+	    	//        	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/human10s";
+			transfer_table = Utility.Read_Transfer_Table(transfer_table_path);
+			if(transfer_table == null)
+				throw new Exception("Read transfer_table failed!");
+			
+			data_Graph = new Data_Graph(datagraph_path, transfer_table);
+			data_Graph.Calculate_Label_Cardinality();
+			data_Graph.Calculate_Label_Degree_Nodes();
+			
+//	    	ArrayList<Query_Graph> query_Graphs = Utility.ReadQueryGraphs(query_graphs_path, transfer_table, 1);
+//	    	CFLMatch cflMatch = new CFLMatch(p_label_cardinality);
+//	    	cflMatch.SubgraphMatch(query_Graphs.get(0));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 	}
 	
 	public void Initialize_Query_Parameter()
@@ -128,7 +178,7 @@ public class CFLMatch {
 		OwnMethods.Print(String.format("Parameter Init done."));
 		OwnMethods.Print(String.format("MAX_QUERY_NODE:%d\nMAX_DEGREE_QUERY:%d\n", cnt_node_query, MAX_DEGREE_QUERY));
 		
-		Get_Node_Core_Degree();
+		coreDecompositition_query();
 		
 		NEC_mapping = new int[(cnt_unique_label + 1) * cnt_node_query];
 		NEC_mapping_pair = new ArrayList<NEC_element>((cnt_unique_label + 1) * cnt_node_query);
@@ -155,13 +205,29 @@ public class CFLMatch {
 		core_tree_node_nte_array = new int[sum_degree_cur];
 		core_tree_node_child_array = new int[sum_degree_cur];
 		
-		indexSet = new NodeIndexUnit[cnt_node_query];
-		
 		NLF_size = (cnt_unique_label + 1) / SIZEOF_INT + 1;
 		NLF_array = new int[NLF_size];
 		NLF_check = new int[cnt_node * NLF_size];
 		
 		exploreCRSequence = new int[cnt_node_query];//not useful
+		
+		indexSet = new NodeIndexUnit[cnt_node_query];
+		for ( int i = 0; i < cnt_node_query; i++)
+		{
+			indexSet[i].candidates = new int[max_label_counter];
+			indexSet[i].path = new long [max_label_counter];
+			indexSet[i].parent_cand_size = 0;
+		}
+		
+		seq_edge_this_level = new ArrayList<Pair<Integer,Integer>>();
+		simulation_check_array =  new int[cnt_node];
+		
+		array_to_clean = new int[cnt_node * cnt_node_query];
+		to_clean_index = 0;
+		
+		flag_prelin_char = new int[cnt_node];
+		flag_child_cand = new int[cnt_node];
+		index_array_for_indexSet = new int[cnt_node];
 	}
 	
 	
@@ -190,7 +256,7 @@ public class CFLMatch {
 			BFS_NORMAL();
 			nte_array_for_matching_unit_index = 0;
 			matching_sequence_index =0;
-			exploreCR_FOR_CORE_STRUCTURE();
+//			exploreCR_FOR_CORE_STRUCTURE();
 //			exploreCR_Residual_NORMAL();
 //			simulation_NORMAL();
 //			getCORE_sequence_CORE();
@@ -200,7 +266,10 @@ public class CFLMatch {
 		return null;
 	}
 	
-	public void Get_Node_Core_Degree()
+	/**
+	 * initialize core_number_query
+	 */
+	public void coreDecompositition_query()
 	{
 		//begin starting the core-decomposition, core number is the degree number
 //		int * bin = bin_query;	//	int bin [MAX_DEGREE_QUERY + 1];
@@ -741,26 +810,25 @@ public class CFLMatch {
 			}
 
 			//binary search here
-			int s = label_deg_label_pos[ label - 1 ].second;
-			int end = label_deg_label_pos[ label ].second;
-			vector<int>::iterator pos = lower_bound( degree_array.begin() + s , degree_array.begin() + end, degree);
-			int start = pos - degree_array.begin();
+			int s = label_deg_label_pos.get(label - 1)+1;
+			int end = label_deg_label_pos.get(label);
+			int pos = Utility.lower_bound( label_degree_nodes, s, end, degree);
 
 			count_global_temp_array_1 = 0;
 
-			for (int j = start; j < end; j++) {
+			for (int j = pos; j <= end; j++) {
 
-				int can_id = label_degree_to_node[j];
+				int can_id = label_degree_nodes.get(j).id;
 
 				if(CORE_AND_MAX_NB_FILTER)
 					if (core_number_data[can_id] < core || max_nb_degree > MAX_NB_degree_data[can_id])
 						continue;
 
 
-				char flag_add = 1;
-				for (int pos = NLF_size - 1; pos >= 0; pos--){
-					if (NLF_check[can_id * NLF_size + pos] != ( NLF_array[pos] | NLF_check[can_id * NLF_size + pos] )){
-						flag_add = 0;
+				boolean flag_add = true;
+				for (int pos_local = NLF_size - 1; pos_local >= 0; pos_local--){
+					if (NLF_check[can_id * NLF_size + pos_local] != ( NLF_array[pos_local] | NLF_check[can_id * NLF_size + pos_local] )){
+						flag_add = false;
 						break;
 					}
 				}
@@ -771,7 +839,9 @@ public class CFLMatch {
 			} // end for
 
 			root_node_unit.size = count_global_temp_array_1;
-			fill(root_node_unit.path, root_node_unit.path + count_global_temp_array_1, 1);
+//			fill(root_node_unit.path, root_node_unit.path + count_global_temp_array_1, 1);
+			for ( int i = 0; i < count_global_temp_array_1; i++)
+				root_node_unit.path[i] = 1;
 		}
 
 		int current_level = 0; //this is root node's level
@@ -779,9 +849,9 @@ public class CFLMatch {
 		//================= then explore nodes in the simulation sequence =======================================
 		for (int i = 1; i < simulation_sequence_index; i ++){
 
-			int current_node = simulation_sequence[i];
+			int current_node = simulation_sequence.get(i);
 			int BFS_parent = BFS_parent_query[current_node];
-			visited[current_node] = 1;
+			visited[current_node] = true;
 			int label_cur = nodes_label_query[current_node];
 			int degree_cur = node_degree_query[current_node];
 			int level_cur = BFS_level_query[current_node];
@@ -793,25 +863,25 @@ public class CFLMatch {
 				current_level = level_cur;
 				seq_edge_this_level_index --;
 				while (seq_edge_this_level_index != -1){
-					edge nte = seq_edge_this_level[seq_edge_this_level_index];
-					int refinee = nte.first;
-					NodeIndexUnit & refinee_node_unit = indexSet[refinee];
+					Pair<Integer, Integer> nte = seq_edge_this_level.get(seq_edge_this_level_index);
+					int refinee = nte.getLeft();
+					NodeIndexUnit refinee_node_unit = indexSet[refinee];
 					int label = nodes_label_query[refinee];
-					char check_value = 0;
+					int check_value = 0;
 
-					while (nte.first == refinee){
+					while (nte.getLeft() == refinee){
 
-						int child = nte.second; // the child is the refiner
-						NodeIndexUnit & child_node_unit = indexSet[child];
+						int child = nte.getRight(); // the child is the refiner
+						NodeIndexUnit child_node_unit = indexSet[child];
 						int can_id;
-						pair<int, int> result;
+						Pair<Integer, Integer> result;
 						for (int x = 0; x < child_node_unit.size; x++) {
 							can_id = child_node_unit.candidates[x];
 							if (can_id == -1)
 								continue;
 
 							result = nodes_to_label_info[can_id * (cnt_unique_label + 1) + label];
-							for (int y = result.first; y < result.first + result.second; y++) {
+							for (int y = result.getLeft(); y < result.getLeft() + result.getRight(); y++) {
 								int temp_node = nodes_data[y];
 								if (simulation_check_array [temp_node] == check_value){
 									simulation_check_array [temp_node] ++;
@@ -829,7 +899,7 @@ public class CFLMatch {
 						}
 
 						seq_edge_this_level_index --;
-						nte = seq_edge_this_level[seq_edge_this_level_index];
+						nte = seq_edge_this_level.get(seq_edge_this_level_index);
 
 					}//end for j
 
@@ -848,36 +918,43 @@ public class CFLMatch {
 			}
 			//========================================================================
 
-
-	#ifdef CORE_AND_MAX_NB_FILTER
 			int max_nb_degree = 0;
-			int core_cur = core_number_query[current_node];
-	#endif
+			int core_cur = 0;
+			if(CORE_AND_MAX_NB_FILTER)
+			{
+				max_nb_degree = 0;
+				core_cur = core_number_query[current_node];
+			}
 			//============== generate the neighborhood label array =======================
-			int first = query_nodes_array_info[current_node];
-			memset(NLF_array, 0, sizeof(int) * NLF_size);
-			for (int j = first; j < first + degree_cur; j++) {
-				int local_label = nodes_label_query[  query_nodes_array[j] ];
+//			int first = query_nodes_array_info[current_node];
+//			memset(NLF_array, 0, 4 * NLF_size);
+			NLF_array = new int[4 * NLF_size];
+			for (int neighbor : graph.get(current_node)) 
+			{
+				int local_label = nodes_label_query[neighbor];
 				int idx = NLF_size - 1 - local_label / SIZEOF_INT;
 				int pos = local_label % SIZEOF_INT;
 				NLF_array[idx] |= (1 << pos);
-	#ifdef CORE_AND_MAX_NB_FILTER
-				int nb_degree = node_degree_query [ query_nodes_array[j] ];
-				if ( nb_degree > max_nb_degree) //find the max neighbor degree
-					max_nb_degree = nb_degree;
-	#endif
+				if(CORE_AND_MAX_NB_FILTER)
+				{
+					int nb_degree = node_degree_query [neighbor];
+					if ( nb_degree > max_nb_degree) //find the max neighbor degree
+						max_nb_degree = nb_degree;
+				}
 			}
 			//=================================================================================
 
 
-			NodeIndexUnit & cur_node_unit = indexSet[current_node];
-			NodeIndexUnit & parent_unit = indexSet[BFS_parent];
+			NodeIndexUnit cur_node_unit = indexSet[current_node];
+			NodeIndexUnit parent_unit = indexSet[BFS_parent];
 
 			//make sure it wont "new" array every time
 			if (cur_node_unit.parent_cand_size < parent_unit.size){
 				cur_node_unit.size_of_index = new int [parent_unit.size];
-				memset(cur_node_unit.size_of_index, 0 , sizeof(int) * parent_unit.size);
-				cur_node_unit.index = new int * [parent_unit.size];
+//				memset(cur_node_unit.size_of_index, 0 , sizeof(int) * parent_unit.size);
+				for(i = 0; i < parent_unit.size; i++)
+					cur_node_unit.size_of_index[i] = 0;
+				cur_node_unit.index = new int[parent_unit.size][];
 				cur_node_unit.parent_cand_size = parent_unit.size;
 			}
 
@@ -885,27 +962,29 @@ public class CFLMatch {
 
 			//=========== Check cross-level nte and visited same-level nte =========================
 			//============ FORWARD PRUNING FOR NTES ================================================
-			for (int j = query_nodes_array_info[current_node]; j < query_nodes_array_info[current_node + 1]; j ++){
-				int child = query_nodes_array[j];
+//			for (int j = query_nodes_array_info[current_node]; j < query_nodes_array_info[current_node + 1]; j ++){
+			for(int child : graph.get(current_node)){
+//				int child = query_nodes_array[j];
 				//only keep children with lower level, or vistted ones in same level
 				if (BFS_level_query[child] > level_cur)
 					continue;
 
 				if (!visited[child]){// here, the we made sure that child in lower level have been marked visited already
-					seq_edge_this_level[seq_edge_this_level_index ++] = make_pair(current_node, child);
+					seq_edge_this_level.add(new Pair<Integer, Integer>(current_node, child));
+					seq_edge_this_level_index ++;
 					continue;
 				}
 
 				//Then, we refine the cross-level ntes and visited same-level ntes together :: we dont differentiate them
-				NodeIndexUnit & nte_parent_node_unit = indexSet[child];
+				NodeIndexUnit nte_parent_node_unit = indexSet[child];
 
 				for (int y = 0; y < nte_parent_node_unit.size; y ++) {
 					int nte_parent_cand = nte_parent_node_unit.candidates[y];
 					if (nte_parent_cand == -1)
 						continue;
-					pair<int, int> query_result = nodes_to_label_info[nte_parent_cand * (cnt_unique_label + 1) + label_cur];
+					Pair<Integer, Integer> query_result = nodes_to_label_info[nte_parent_cand * (cnt_unique_label + 1) + label_cur];
 					//for each of the result retrieved by querying the edge index
-					for (int i = query_result.first; i < query_result.first + query_result.second; i++) {
+					for (int i_local = query_result.getLeft(); i_local < query_result.getLeft() + query_result.getRight(); i++) {
 						int can_id = nodes_data[i];
 						if (flag_prelin_char[can_id] == check_value){
 							flag_prelin_char[can_id] ++;
@@ -927,9 +1006,9 @@ public class CFLMatch {
 				count_index_array_for_indexSet = 0;
 
 				//query edge index
-				pair<int, int> res_edgeIndex = nodes_to_label_info[cand_parent * (cnt_unique_label + 1) + label_cur];
+				Pair<Integer, Integer> res_edgeIndex = nodes_to_label_info[cand_parent * (cnt_unique_label + 1) + label_cur];
 
-				for (int x = res_edgeIndex.first; x < res_edgeIndex.first + res_edgeIndex.second; x++) {
+				for (int x = res_edgeIndex.getLeft(); x < res_edgeIndex.getLeft() + res_edgeIndex.getRight(); x++) {
 					int can_id = nodes_data[x];
 					//check the flag for cross-level nte and visited same-level nte
 					if (flag_prelin_char[can_id] != check_value)
@@ -947,7 +1026,7 @@ public class CFLMatch {
 						continue;
 
 					//check lightweight NLF
-					char flag_add = 1;
+					int flag_add = 1;
 					for (int pos = NLF_size - 1; pos >= 0; pos--){
 						if (NLF_check[can_id * NLF_size + pos] != ( NLF_array[pos] | NLF_check[can_id * NLF_size + pos] )){
 							flag_add = 0;
@@ -956,7 +1035,7 @@ public class CFLMatch {
 					}
 
 					// lightweight NLF OK
-					if (flag_add){
+					if (flag_add == 1){
 						cur_node_unit.candidates[child_index] = can_id;
 						cur_node_unit.path[child_index] = parent_unit.path[parent_cand_index];
 						flag_child_cand[can_id] = child_index;
@@ -968,7 +1047,9 @@ public class CFLMatch {
 
 				if (cur_node_unit.size_of_index[parent_cand_index] < count_index_array_for_indexSet)
 					cur_node_unit.index[parent_cand_index] = new int [count_index_array_for_indexSet];
-				copy(index_array_for_indexSet, index_array_for_indexSet + count_index_array_for_indexSet, cur_node_unit.index[parent_cand_index]);
+//				copy(index_array_for_indexSet, index_array_for_indexSet + count_index_array_for_indexSet, cur_node_unit.index[parent_cand_index]);
+				for(int i_local = 0; i_local < count_index_array_for_indexSet; i++)
+					cur_node_unit.index[parent_cand_index][i] = index_array_for_indexSet[i];
 				cur_node_unit.size_of_index[parent_cand_index] = count_index_array_for_indexSet;
 			}//end for: candidates of BFS parent
 
