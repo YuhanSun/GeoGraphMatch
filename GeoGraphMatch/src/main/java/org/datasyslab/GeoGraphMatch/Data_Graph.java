@@ -11,6 +11,9 @@ import java.util.HashMap;
 import org.neo4j.helpers.collection.PagingIterator;
 
 public class Data_Graph {
+	public int SIZE_OF_EDGE_MATRIX = 10000;
+	private static final int SIZEOF_INT = 32;
+	public int SIZEOF;
 	//they are initialized when object is constructed
 	public int[] label_list;
 	ArrayList<ArrayList<Integer>> graph;
@@ -38,6 +41,12 @@ public class Data_Graph {
 	public int[] nodes_data;
 	
 	public int[] degree_data;
+	
+	public boolean[] data_edge_matrix;
+	
+	public int NLF_size;
+	public int[] NLF_array;
+	public int[] NLF_check;
 	
 	
 	public Data_Graph(int node_count)
@@ -110,6 +119,19 @@ public class Data_Graph {
 		}
 	}
 	
+	public void Calculate_All()
+	{
+		AdjacentListSort();
+		Calculate_Label_Cardinality();
+		Calculate_Label_Degree_Nodes();
+		Calculate_Core_Number_Data();
+		Calculate_NLF_check();
+		Calculate_MAX_NB_degree_data();
+		Calculate_nodes_to_label_info();
+		Calculate_degree_data();
+		Calculate_data_edge_matrix();
+	}
+	
 	/**
 	 * sort adjacent list of each node by label (ascend) and degree(descend)
 	 */
@@ -127,6 +149,7 @@ public class Data_Graph {
 				}
 			});
 		}
+		adjacentlist_sorted = true;
 	}
 	
 	
@@ -283,6 +306,20 @@ public class Data_Graph {
 			}
 		}
 	}
+	
+	public void Calculate_NLF_check()
+	{
+		NLF_size = (label_cardinality.size() + 1) / SIZEOF_INT + 1;
+		NLF_array = new int[NLF_size];
+		NLF_check = new int [cnt_node * NLF_size];
+		for (int i = 0; i < graph.size(); i++)
+			for (int j = 0; j < graph.get(i).size(); j++){
+				int label = label_list[ graph.get(i).get(j) ];
+				int idx = NLF_size - 1 - label / SIZEOF_INT;
+				int pos = label % SIZEOF_INT;
+				NLF_check[i  * NLF_size + idx] |= (1 << pos);
+			}
+	}
 
 	/**
 	 * calculate MAX_NB_degree_data (new int[cnt_node])
@@ -304,7 +341,7 @@ public class Data_Graph {
 	}
 	
 	/**
-	 * 
+	 * nodes_to_label_info & nodes_data
 	 */
 	public void Calculate_nodes_to_label_info()
 	{
@@ -378,5 +415,22 @@ public class Data_Graph {
 		degree_data = new int[cnt_node];
 		for (int i = 0; i < graph.size(); i++)
 			degree_data[i] = graph.get(i).size();
+	}
+	
+	public void Calculate_data_edge_matrix()
+	{
+		SIZEOF = (cnt_node <= SIZE_OF_EDGE_MATRIX) ? 1 : 0;
+		data_edge_matrix = new boolean[SIZE_OF_EDGE_MATRIX * SIZE_OF_EDGE_MATRIX];
+		for ( int left_node = 0; left_node < cnt_node; left_node++)
+		{
+			ArrayList<Integer> neighbors_list = graph.get(left_node);
+			int left = left_node % SIZE_OF_EDGE_MATRIX;
+			for ( int right_node: neighbors_list)
+			{
+				int right = right_node % SIZE_OF_EDGE_MATRIX;
+				data_edge_matrix[left * SIZE_OF_EDGE_MATRIX + right] = true;//adjacency matrix (global used later)
+				data_edge_matrix[right * SIZE_OF_EDGE_MATRIX + left] = true;
+			}
+		}
 	}
 }
