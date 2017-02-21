@@ -201,8 +201,8 @@ public class CFLMatch {
 		try {
 			String datagraph_path = "/home/yuhansun/Documents/GeoGraphMatchData/data/DataSet/hprd";
 			String transfer_table_path = "/home/yuhansun/Documents/GeoGraphMatchData/data/transfertable_hprd.txt";
-			String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/data/QuerySet/hprd50s";
-			//        	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/test_query_graph";
+//			String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/data/QuerySet/hprd50s";
+			String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/data/QuerySet/test_query_graph";
 			//        	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/human10s";
 			transfer_table = Utility.Read_Transfer_Table(transfer_table_path);
 			if(transfer_table == null)
@@ -211,7 +211,7 @@ public class CFLMatch {
 			data_Graph = new Data_Graph(datagraph_path, transfer_table);
 			data_Graph.Calculate_All();
 
-			int read_count = 100;
+			int read_count = 1;
 			ArrayList<Query_Graph> query_Graphs = Utility.ReadQueryGraphs(query_graphs_path, transfer_table, read_count);
 			CFLMatch cflMatch = new CFLMatch(data_Graph);
 			
@@ -238,7 +238,7 @@ public class CFLMatch {
 			sum_degree_cur += line.size();
 		}
 		OwnMethods.Print(String.format("Parameter Init done."));
-		OwnMethods.Print(String.format("MAX_QUERY_NODE:%d\nMAX_DEGREE_QUERY:%d\n", cnt_node_query, MAX_DEGREE_QUERY));
+		OwnMethods.Print(String.format("cnt_node_query:%d\nMAX_DEGREE_QUERY:%d\n", cnt_node_query, MAX_DEGREE_QUERY));
 
 		coreDecompositition_query();
 
@@ -372,6 +372,7 @@ public class CFLMatch {
 			exploreCR_Residual_TREE();
 			simulation_NORMAL();
 			getTreeMatchingSequence_TREE();
+			mapping_found = getTreeMapping_Enumeration();
 		}
 		else
 		{
@@ -515,16 +516,16 @@ public class CFLMatch {
 								NEC_Node_array[child].next = -1;
 							}
 						} else {
-							NEC_map [child] = NEC_mapping_Actual[label * MAX_QUERY_NODE + i];//NEC map
+							NEC_map [child] = NEC_mapping_Actual[label * cnt_node_query + i];//NEC map
 							if(RESULT_ENUMERATION)
 							{
-								int rep =NEC_mapping_Actual[label * MAX_QUERY_NODE + i];
+								int rep =NEC_mapping_Actual[label * cnt_node_query + i];
 								NEC_Node_array[child].node = child;
 								NEC_Node_array[child].next = NEC_Node_array[ rep ].next;
 								NEC_Node_array[ rep ].next = child;
 							}
 						}
-						NEC_mapping[label * MAX_QUERY_NODE + i]++; // the label with parent being i, nec_count ++
+						NEC_mapping[label * cnt_node_query + i]++; // the label with parent being i, nec_count ++
 					} else {
 						//============ CASE TWO: NORMAL CASE, THE QUERY TREE ================
 						// extract the query tree for extra region candidate extraction, based on DFS
@@ -553,28 +554,28 @@ public class CFLMatch {
 									//======== special treatment here: if a node is a leaf (degree being 1), then put it into nec node set
 									if (node_degree_query[child_node] == 1){
 										int label = nodes_label_query[child_node];
-										if (NEC_mapping[label * MAX_QUERY_NODE + current_node] == 0) {
+										if (NEC_mapping[label * cnt_node_query + current_node] == 0) {
 //											NEC_mapping_pair[NEC_mapping_pair_index ++] = NEC_element(label, current_node, child_node);// child is the repesentive node
 											NEC_mapping_pair.add(new NEC_element(label, current_node, child_node));
 											NEC_mapping_pair_index++;
 											NEC_map [child_node] = child_node;//NEC map
-											NEC_mapping_Actual[label * MAX_QUERY_NODE + current_node] = child_node;
+											NEC_mapping_Actual[label * cnt_node_query + current_node] = child_node;
 											if(RESULT_ENUMERATION)
 											{
 												NEC_Node_array[child_node].node = child_node;
 												NEC_Node_array[child_node].next = -1;
 											}
 										} else {
-											NEC_map [child_node] = NEC_mapping_Actual[label * MAX_QUERY_NODE + current_node];//NEC map
+											NEC_map [child_node] = NEC_mapping_Actual[label * cnt_node_query + current_node];//NEC map
 											if(RESULT_ENUMERATION)
 											{
-												int rep = NEC_mapping_Actual[label * MAX_QUERY_NODE + current_node];
+												int rep = NEC_mapping_Actual[label * cnt_node_query + current_node];
 												NEC_Node_array[child_node].node = child_node;
 												NEC_Node_array[child_node].next = NEC_Node_array[ rep ].next;
 												NEC_Node_array[ rep ].next = child_node;
 											}
 										}
-											NEC_mapping[label * MAX_QUERY_NODE + current_node]++; // the label with parent being i, nec_count ++
+											NEC_mapping[label * cnt_node_query + current_node]++; // the label with parent being i, nec_count ++
 											continue;
 									}
 									//===========================================================
@@ -607,7 +608,7 @@ public class CFLMatch {
 
 		});
 
-		int last_label;
+		int last_label = 0;
 		NEC_set_index = 0;
 		NEC_set_by_label_index.clear();
 		int sum;
@@ -619,87 +620,89 @@ public class CFLMatch {
 			int parent_id = nec_ele.parent_id;
 			int represent_child = nec_ele.represent_node;
 
-			sum = NEC_mapping[label * MAX_QUERY_NODE + parent_id];
-			NEC_mapping[label * MAX_QUERY_NODE + parent_id] = 0; //reset it back to 0
-			NEC_set_by_label_index.push_back(make_pair(label, NEC_set_index));
+			sum = NEC_mapping[label * cnt_node_query + parent_id];
+			NEC_mapping[label * cnt_node_query + parent_id] = 0; //reset it back to 0
+			NEC_set_by_label_index.add(new Pair<Integer, Integer>(label, NEC_set_index));
 
-			NEC_set_array[NEC_set_index ++] = NEC_set_array_element(parent_id, represent_child, sum);
-			NEC_set_by_label_index.push_back(make_pair(-1, NEC_mapping_pair_index)); // redundant element to set the end
+			NEC_set_array[NEC_set_index ++] = new NEC_set_array_element(parent_id, represent_child, sum);
+			NEC_set_by_label_index.add(new Pair<Integer, Integer>(-1, NEC_mapping_pair_index)); // redundant element to set the end
 
 		} else {
 
 			for (int i = 0; i < NEC_mapping_pair_index; i++) {
 
-				NEC_element & nec_ele = NEC_mapping_pair[i];
+				NEC_element nec_ele = NEC_mapping_pair.get(i);
 
 				int label = nec_ele.label;
 				int parent_id = nec_ele.parent_id;
 				int represent_child = nec_ele.represent_node;
 
-				sum = NEC_mapping[label * MAX_QUERY_NODE + parent_id];
-				NEC_mapping[label * MAX_QUERY_NODE + parent_id] = 0; //reset it back to 0
+				sum = NEC_mapping[label * cnt_node_query + parent_id];
+				NEC_mapping[label * cnt_node_query + parent_id] = 0; //reset it back to 0
 
 				if (i == 0) {
-					NEC_set_by_label_index.push_back(make_pair(label, NEC_set_index));
-					NEC_set_array[NEC_set_index ++] = NEC_set_array_element(parent_id, represent_child, sum);
+					NEC_set_by_label_index.add(new Pair<Integer, Integer>(label, NEC_set_index));
+					NEC_set_array[NEC_set_index ++] = new NEC_set_array_element(parent_id, represent_child, sum);
 					last_label = label;
 					continue;
 				} else if (i == NEC_mapping_pair_index - 1) {
 					if (label != last_label)
-						NEC_set_by_label_index.push_back(make_pair(label, NEC_set_index));
-					NEC_set_array[NEC_set_index ++] = NEC_set_array_element(parent_id, represent_child, sum);
-					NEC_set_by_label_index.push_back(make_pair(-1, NEC_mapping_pair_index)); // redunant element to set the end
+						NEC_set_by_label_index.add(new Pair<Integer, Integer>(label, NEC_set_index));
+					NEC_set_array[NEC_set_index ++] = new NEC_set_array_element(parent_id, represent_child, sum);
+					NEC_set_by_label_index.add(new Pair<Integer, Integer>(-1, NEC_mapping_pair_index)); // redunant element to set the end
 					continue;
 				}
 
 				if (label != last_label) {
-					NEC_set_by_label_index.push_back(make_pair(label, NEC_set_index));
+					NEC_set_by_label_index.add(new Pair<Integer, Integer>(label, NEC_set_index));
 					last_label = label;
 				}
 
-				NEC_set_array[NEC_set_index ++] = NEC_set_array_element(parent_id, represent_child, sum);
+				NEC_set_array[NEC_set_index ++] = new NEC_set_array_element(parent_id, represent_child, sum);
 			}
 		}
 		//=============== finish construct the NEC set by label ==========================================================================
 		//=============================== END extract the remaining structure =======================
-	#ifdef RESULT_ENUMERATION
-		for (int i = 0; i < cnt_node_query; i++){
-			if (node_degree_query[i] != 1)
-				continue;
-			NEC_Node * next = NEC_Node_array[i].nextAddress;
-			if (next == NULL)
-				continue;
-			while (next != NULL)
-				next = next->nextAddress;
-		}
-
-	#endif
-	#ifdef	OUTPUT_EXTRA_INFO
-		int sum_node = 0;
-		if (NEC_mapping_pair_index != 0){
-			for (int i = 0; i < NEC_set_by_label_index.size() - 1; i++) {
-				int label = NEC_set_by_label_index[i].first;
-				int start = NEC_set_by_label_index[i].second;
-				int end = NEC_set_by_label_index[i + 1].second;
-				for (int j = start; j < end; j++) {
-					int parent_id = NEC_set_array[j].parent_id;
-					int sum = NEC_set_array[j].sum;
-					sum_node += sum;
-					cout << "label :" << label << " => parent id " << parent_id << " \t sum => " << sum
-							<< "\t representative node is " << NEC_set_array[j].represent_node<< endl;
-				}
+		if(RESULT_ENUMERATION)
+		{
+			for (int i = 0; i < cnt_node_query; i++){
+				if (node_degree_query[i] != 1)
+					continue;
+				int next_id = NEC_Node_array[i].next;
+				if (next_id == -1)
+					continue;
+				while (next_id != -1)
+					next_id = NEC_Node_array[next_id].next;
 			}
-		}
-		cout << "NEC classes contained: " << NEC_mapping_pair_index << " classes with " << sum_node << " nodes " << endl;
-		cout << "Query trees with sum node: " << residual_tree_match_seq_index
-					<< " and tree leaf index is " << residual_tree_leaf_node_index << endl;
-		cout << "Nodes in tree: ";
-		for (int i = 0; i < residual_tree_match_seq_index; i++){
-			cout << residual_tree_match_seq[i] << " ";
-		}
-		cout << endl;
 
-	#endif
+		}
+//		if(OUTPUT_EXTRA_INFO)
+//		{
+//			int sum_node = 0;
+//			if (NEC_mapping_pair_index != 0){
+//				for (int i = 0; i < NEC_set_by_label_index.size() - 1; i++) {
+//					int label = NEC_set_by_label_index[i].first;
+//					int start = NEC_set_by_label_index[i].second;
+//					int end = NEC_set_by_label_index[i + 1].second;
+//					for (int j = start; j < end; j++) {
+//						int parent_id = NEC_set_array[j].parent_id;
+//						int sum = NEC_set_array[j].sum;
+//						sum_node += sum;
+//						cout << "label :" << label << " => parent id " << parent_id << " \t sum => " << sum
+//						<< "\t representative node is " << NEC_set_array[j].represent_node<< endl;
+//					}
+//				}
+//			}
+//			cout << "NEC classes contained: " << NEC_mapping_pair_index << " classes with " << sum_node << " nodes " << endl;
+//			cout << "Query trees with sum node: " << residual_tree_match_seq_index
+//			<< " and tree leaf index is " << residual_tree_leaf_node_index << endl;
+//			cout << "Nodes in tree: ";
+//			for (int i = 0; i < residual_tree_match_seq_index; i++){
+//				cout << residual_tree_match_seq[i] << " ";
+//			}
+//			cout << endl;
+//
+//		}
 	}
 
 
@@ -949,7 +952,7 @@ public class CFLMatch {
 
 	}
 	
-	int start_node_selection_TREE(){
+	public int start_node_selection_TREE(){
 
 		double least_ranking = Double.MAX_VALUE;
 		int start_node = -1;
@@ -1010,6 +1013,96 @@ public class CFLMatch {
 			}
 		}
 		return start_node;
+	}
+	
+	public void BFS_TREE() {
+
+		/*
+		 * for the normal input, this function should only consider the core structure nodes for the future top-down indexing
+		 * output : true_leaf_nodes, simulation_sequence_array, level_to_sequence which maps a level to a segment in the sequence
+		 */
+
+		resetTreeNodes();
+
+		core_tree_node_child_array_index = 0;
+		core_tree_node_nte_array_index = 0;
+		exploreCRSequence_indx = 0;
+
+		int [] visited = new int[cnt_node_query];
+		int [] queue_array = new int[cnt_node_query];
+		queue_array[0] = root_node_id;
+		int pointer_this_start = 0;
+		int pointer_this_end = 1;
+		int pointer_next_end = 1;
+		int current_level = 1; //initial level starts at 1
+		simulation_sequence_index = 0;
+		level_index.clear();
+		visited[root_node_id] = 1;
+		BFS_level_query[root_node_id] = 1;
+		BFS_parent_query[root_node_id] = -1;
+
+		initializeTreeNode(core_query_tree[root_node_id], -1);
+
+		while (true) {
+
+			int start = simulation_sequence_index;
+
+			while (pointer_this_start != pointer_this_end) { // queue not empty
+
+				int current_node = queue_array[pointer_this_start];
+				pointer_this_start++;
+
+//				int start = query_nodes_array_info[current_node];
+//				int end = query_nodes_array_info[current_node + 1];
+//
+//				for (int i = start; i < end; i ++){
+//
+//					int childNode = query_nodes_array[i];
+				for (int i = 0; i < graph.get(current_node).size(); i ++){
+
+					int childNode = graph.get(current_node).get(i);
+
+					if (visited[childNode] != 0) { //this child node has been visited before,
+						if (childNode != core_query_tree[current_node].parent_node)
+							addNonTreeEdgeToTreeNode (core_query_tree[current_node], childNode);
+						if (visited[childNode] > current_level)	//this is a cross level nte
+							addCrossLevelNTEToTreeNode (core_query_tree[childNode], current_node); //record its cross level nte parent
+					} else {					//this child node has not been visited.
+						visited[childNode] = current_level + 1; //parent node's level plus one
+						queue_array[pointer_next_end ++] = childNode;
+						BFS_level_query[childNode] = current_level + 1;
+						BFS_parent_query[childNode] = current_node;
+
+						if (core_number_query[childNode] < 2)
+							continue;
+
+						initializeTreeNode(core_query_tree[childNode], current_node);//set current_node as parent
+						addChildToTreeNode(core_query_tree[current_node], childNode);//core_tree_node_child_array is set here
+					}
+				}
+
+//				simulation_sequence[simulation_sequence_index ++] = current_node;
+				simulation_sequence.set(simulation_sequence_index, current_node);
+				simulation_sequence_index ++;
+			}
+
+			int end = simulation_sequence_index;
+			level_index.add(new Pair<Integer, Integer>(start, end));//start and end labels each level in simulation_sequence
+
+			for (int i = end - 1; i >= start; i--){
+				int node = simulation_sequence.get(i);
+				if (core_number_query[node] < 2)
+					continue;
+				exploreCRSequence[exploreCRSequence_indx ++] = node;
+			}
+
+			if (pointer_next_end == pointer_this_end) //no node has been pushed in
+				break;
+
+			pointer_this_start = pointer_this_end;
+			pointer_this_end = pointer_next_end;
+			current_level++;
+		}
 	}
 
 	public void BFS_NORMAL()
@@ -1143,6 +1236,90 @@ public class CFLMatch {
 			treeNode.children = new Pair<Integer, Integer>(core_tree_node_child_array_index - 1, 1);
 		else
 			treeNode.children.setRight(treeNode.children.getRight()+1);
+	}
+	
+	public void exploreCR_FOR_TREE_ONLY_ROOT(){
+
+		//================= First step: deal with the ROOT node ===============================
+		//visited flag array: introduced solely becasue of the same-level ntes validation
+		boolean [] visited = new boolean[cnt_node_query];
+		int seq_edge_this_level_index = 0;
+
+		//get its preliminary candidates now
+		{
+			visited[root_node_id] = true;
+			NodeIndexUnit root_node_unit = indexSet[root_node_id];
+			int label = nodes_label_query[root_node_id];
+			int degree = node_degree_query[root_node_id];
+
+			int max_nb_degree;
+			int core;
+			if(CORE_AND_MAX_NB_FILTER)
+			{
+				max_nb_degree = 0;
+				core = core_number_query[root_node_id];
+			}
+			//============== generate the neighborhood label array =======================
+//			int first = query_nodes_array_info[root_node_id];
+//			memset(NLF_array, 0, sizeof(int) * NLF_size);
+//			for (int j = first; j < first + degree; j++) {
+//				int local_label = nodes_label_query[  query_nodes_array[j] ];
+			NLF_array = new int[4 * NLF_size];
+			for (int j = 0; j < graph.get(root_node_id).size(); j++) {
+				int neighborhood = graph.get(root_node_id).get(j);
+				int local_label = nodes_label_query[neighborhood];
+				int idx = NLF_size - 1 - local_label / SIZEOF_INT;
+				int pos = local_label % SIZEOF_INT;
+				NLF_array[idx] |= (1 << pos);
+				if(CORE_AND_MAX_NB_FILTER)
+				{
+					int nb_degree = node_degree_query [ neighborhood ];
+					if ( nb_degree > max_nb_degree) //find the max neighbor degree
+						max_nb_degree = nb_degree;
+				}
+			}
+
+			//binary search here
+//			int s = label_deg_label_pos[ label - 1 ].second;
+//			int end = label_deg_label_pos[ label ].second;
+//			vector<int>::iterator pos = lower_bound( degree_array.begin() + s , degree_array.begin() + end, degree);
+//			int start = pos - degree_array.begin();
+			int s = label_deg_label_pos.get(label - 1)+1;
+			int end = label_deg_label_pos.get(label);
+			int pos = Utility.lower_bound( label_degree_nodes, s, end, degree);
+
+			count_global_temp_array_1 = 0;
+
+//			for (int j = start; j < end; j++) {
+//
+//				int can_id = label_degree_to_node[j];
+			for (int j = pos; j <= end; j++) {
+
+				int can_id = label_degree_nodes.get(j).id;
+				if(CORE_AND_MAX_NB_FILTER)
+				{
+					if (core_number_data[can_id] < core || max_nb_degree > MAX_NB_degree_data[can_id])
+						continue;
+				}
+
+				char flag_add = 1;
+				for (int pos_local = NLF_size - 1; pos_local >= 0; pos_local--){
+					if (NLF_check[can_id * NLF_size + pos_local] != ( NLF_array[pos_local] | NLF_check[can_id * NLF_size + pos_local] )){
+						flag_add = 0;
+						break;
+					}
+				}
+
+				if (flag_add != 0) 				// This node id is valid preliminary candidate for the current query node!!!
+					root_node_unit.candidates[count_global_temp_array_1 ++] = can_id;//it is one element in indexSet
+
+			} // end for
+
+			root_node_unit.size = count_global_temp_array_1;
+//			fill(root_node_unit.path, root_node_unit.path + count_global_temp_array_1, 1);
+			for ( int i = 0; i < count_global_temp_array_1; i++)
+				root_node_unit.path[i] = 1;
+		}
 	}
 
 	public void exploreCR_FOR_CORE_STRUCTURE(){
@@ -1451,6 +1628,236 @@ public class CFLMatch {
 		} //end for: simulation sequence
 
 	}
+	
+	public void exploreCR_Residual_TREE(){
+
+		int [] flag_prelin = flag_prelin_char;
+//		memset(flag_prelin, 0, sizeof(char) * cnt_node);
+//		memset(flag_child_cand, -1, sizeof(int) * cnt_node);
+		for(int i = 0; i < cnt_node; i++)
+		{
+			flag_prelin[i] = 0;
+			flag_child_cand[i] = -1;
+		}
+
+		// Second case : the tree structures
+		for (int i = 0; i < residual_tree_match_seq_index; i++){//query node interator
+
+			int current_node = residual_tree_match_seq[i];
+			int BFS_parent = tree_node_parent[current_node];
+			int label_cur = nodes_label_query[current_node];
+			int degree_cur = node_degree_query[current_node];
+			
+			int max_nb_degree = 0;
+			int core_cur = 0;
+			
+			if(CORE_AND_MAX_NB_FILTER)
+			{
+				max_nb_degree = 0;
+				core_cur = core_number_query[current_node];//it is not used
+			}
+			//============== generate the neighborhood label array =======================
+//			int first = query_nodes_array_info[current_node];
+//			memset(NLF_array, 0, sizeof(int) * NLF_size);
+			NLF_array = new int[4 * NLF_size];
+//			for (int j = first; j < first + degree_cur; j++) {
+			for (int neighbor : graph.get(current_node)){
+				//				int local_label = nodes_label_query[  query_nodes_array[j] ];
+				int local_label = nodes_label_query[neighbor];
+				int idx = NLF_size - 1 - local_label / SIZEOF_INT;
+				int pos = local_label % SIZEOF_INT;
+				NLF_array[idx] |= (1 << pos);
+				if(CORE_AND_MAX_NB_FILTER)
+				{
+					//				int nb_degree = node_degree_query [ query_nodes_array[j] ];
+					//				if ( nb_degree > max_nb_degree) //find the max neighbor degree
+					//					max_nb_degree = nb_degree;
+					int nb_degree = node_degree_query [ neighbor ];
+					if ( nb_degree > max_nb_degree) //find the max neighbor degree
+						max_nb_degree = nb_degree;
+				}
+			}
+
+			NodeIndexUnit cur_node_unit = indexSet[current_node];
+			NodeIndexUnit parent_unit = indexSet[BFS_parent];
+
+
+			if (cur_node_unit.parent_cand_size < parent_unit.size){//make sure it wont "new" array every time
+				cur_node_unit.size_of_index = new int [parent_unit.size];
+//				memset(cur_node_unit.size_of_index, 0 , sizeof(int) * parent_unit.size);
+				for ( int i_local = 0; i_local < parent_unit.size; i_local++)
+					cur_node_unit.size_of_index[i_local] = 0;
+				cur_node_unit.index = new int [parent_unit.size][];
+				cur_node_unit.parent_cand_size = parent_unit.size;
+			}
+
+			int child_index = 0;
+			//for each cands of its BFS parent
+			for (int parent_cand_index = 0; parent_cand_index < parent_unit.size; parent_cand_index++){
+				int cand_parent = parent_unit.candidates[parent_cand_index];
+				if (cand_parent == -1)
+					continue;
+				count_index_array_for_indexSet = 0;
+
+				//query edge index
+				Pair<Integer, Integer> res_edgeIndex = nodes_to_label_info[cand_parent * (cnt_unique_label + 1) + label_cur];
+
+				for (int x = res_edgeIndex.getLeft(); x < res_edgeIndex.getLeft() + res_edgeIndex.getRight(); x++) {
+					int can_id = nodes_data[x];
+					//check the flag for cross-level nte and visited same-level nte
+					if (flag_child_cand[can_id] != -1){
+						//push into the index first
+						cur_node_unit.path[child_index] += parent_unit.path[parent_cand_index];
+						index_array_for_indexSet[count_index_array_for_indexSet ++] = flag_child_cand[can_id];
+						continue;
+					}
+					//check degree, core, and max_neighbor degree together
+					if (degree_data[can_id] < degree_cur || core_number_data[can_id] < core_cur || MAX_NB_degree_data[can_id] < max_nb_degree)
+						continue;
+
+					//check lightweight NLF
+					char flag_add = 1;
+					for (int pos = NLF_size - 1; pos >= 0; pos--){
+						if (NLF_check[can_id * NLF_size + pos] != ( NLF_array[pos] | NLF_check[can_id * NLF_size + pos] )){
+							flag_add = 0;
+							break;
+						}
+					}
+
+					// lightweight NLF OK
+					if (flag_add != 0){
+						cur_node_unit.candidates[child_index] = can_id;
+						cur_node_unit.path[child_index] = parent_unit.path[parent_cand_index];
+						flag_child_cand[can_id] = child_index;
+						index_array_for_indexSet[count_index_array_for_indexSet ++] = child_index;
+						child_index ++;
+					}
+
+				}//end for: edge index
+
+				if (cur_node_unit.size_of_index[parent_cand_index] < count_index_array_for_indexSet)
+					cur_node_unit.index[parent_cand_index] = new int [count_index_array_for_indexSet];
+//				copy(index_array_for_indexSet, index_array_for_indexSet + count_index_array_for_indexSet, cur_node_unit.index[parent_cand_index]);
+				for(int i_local = 0; i_local < count_index_array_for_indexSet; i_local++)
+					cur_node_unit.index[parent_cand_index][i_local] = index_array_for_indexSet[i_local];
+				cur_node_unit.size_of_index[parent_cand_index] = count_index_array_for_indexSet;
+
+			}//end for: candidates of BFS parent
+
+			cur_node_unit.size = child_index;
+			for (int x = 0; x < child_index; x++)
+				flag_child_cand[ cur_node_unit.candidates [x] ] = -1;
+		}
+
+		// First case : the NEC sets
+		if (NEC_mapping_pair_index != 0) {
+
+			for (int i = 0; i < NEC_set_by_label_index.size() - 1; i++) { // access the nec set by label
+				int label = NEC_set_by_label_index.get(i).getLeft();
+				int start = NEC_set_by_label_index.get(i).getRight();
+				int end = NEC_set_by_label_index.get(i + 1).getRight();
+				for (int j = start; j < end; j++) { // for each nec node with this label
+					int parent_id = NEC_set_array[j].parent_id; //the parent node => "articulation node"
+					int represent_node = NEC_set_array[j].represent_node;
+					int degree_cur = node_degree_query[represent_node];
+					int max_nb_degree = 0;
+					int core_cur = 0;
+					if(CORE_AND_MAX_NB_FILTER)
+					{
+						max_nb_degree = 0;
+						core_cur = core_number_query[represent_node];
+					}
+					//============== generate the neighborhood label array =======================
+//					int first = query_nodes_array_info[represent_node];
+//					memset(NLF_array, 0, sizeof(int) * NLF_size);
+					NLF_array = new int[NLF_size];
+//					for (int j = first; j < first + degree_cur; j++) {
+					for (int neighbor : graph.get(represent_node)){
+						int local_label = nodes_label_query[  neighbor ];
+						int idx = NLF_size - 1 - local_label / SIZEOF_INT;
+						int pos = local_label % SIZEOF_INT;
+						NLF_array[idx] |= (1 << pos);
+						if(CORE_AND_MAX_NB_FILTER)
+						{
+							int nb_degree = node_degree_query [ neighbor ];
+							if ( nb_degree > max_nb_degree) //find the max neighbor degree
+								max_nb_degree = nb_degree;
+						}
+					}
+					//=================================================================================
+
+					NodeIndexUnit cur_node_unit = indexSet[represent_node];
+					NodeIndexUnit parent_unit = indexSet[parent_id];
+
+					if (cur_node_unit.parent_cand_size < parent_unit.size){
+						cur_node_unit.size_of_index = new int [parent_unit.size];
+//						memset(cur_node_unit.size_of_index, 0 , sizeof(int) * parent_unit.size);
+						
+						for(int i_local = 0; i_local < parent_unit.size; i_local++)
+							cur_node_unit.size_of_index[i_local] = 0;
+						
+						cur_node_unit.index = new int[parent_unit.size][];
+						cur_node_unit.parent_cand_size = parent_unit.size;
+					}
+
+					int child_index = 0;
+					//for each cands of its BFS parent
+					for (int parent_cand_index = 0; parent_cand_index < parent_unit.size; parent_cand_index++){
+						int cand_parent = parent_unit.candidates[parent_cand_index];
+						if (cand_parent == -1)
+							continue;
+						count_index_array_for_indexSet = 0;
+						//query edge index
+						Pair<Integer, Integer> res_edgeIndex = nodes_to_label_info[cand_parent * (cnt_unique_label + 1) + label];
+						for (int x = res_edgeIndex.getLeft(); x < res_edgeIndex.getLeft() + res_edgeIndex.getRight(); x++) {
+							int can_id = nodes_data[x];
+							if (flag_child_cand[can_id] != -1){
+								//push into the index first
+								cur_node_unit.path[child_index] += parent_unit.path[parent_cand_index];
+								index_array_for_indexSet[count_index_array_for_indexSet ++] = flag_child_cand[can_id];
+								continue;
+							}
+							//check degree, core, and max_neighbor degree together
+							if (degree_data[can_id] < degree_cur || core_number_data[can_id] < core_cur || MAX_NB_degree_data[can_id] < max_nb_degree)
+								continue;
+
+							//check lightweight NLF
+							char flag_add = 1;
+							for (int pos = NLF_size - 1; pos >= 0; pos--){
+								if (NLF_check[can_id * NLF_size + pos] != ( NLF_array[pos] | NLF_check[can_id * NLF_size + pos] )){
+									flag_add = 0;
+									break;
+								}
+							}
+
+							// lightweight NLF OK
+							if (flag_add != 0){
+								cur_node_unit.candidates[child_index] = can_id;
+								cur_node_unit.path[child_index] = parent_unit.path[parent_cand_index];
+								flag_child_cand[can_id] = child_index;
+								index_array_for_indexSet[count_index_array_for_indexSet ++] = child_index;
+								child_index ++;
+							}
+
+						}//end for: edge index
+
+						if (cur_node_unit.size_of_index[parent_cand_index] < count_index_array_for_indexSet)
+							cur_node_unit.index[parent_cand_index] = new int [count_index_array_for_indexSet];
+//						copy(index_array_for_indexSet, index_array_for_indexSet + count_index_array_for_indexSet, cur_node_unit.index[parent_cand_index]);
+						for (int i_local = 0; i_local < count_index_array_for_indexSet; i_local++)
+							cur_node_unit.index[parent_cand_index][i_local] = index_array_for_indexSet[i_local];
+						cur_node_unit.size_of_index[parent_cand_index] = count_index_array_for_indexSet;
+
+					}//end for: candidates of BFS parent
+					cur_node_unit.size = child_index;
+
+					for (int x = 0; x < child_index; x++)
+						flag_child_cand[ cur_node_unit.candidates [x] ] = -1;
+				}//end for each nec node
+			}//end for each nec label
+		}
+	}
+	
 
 	public void exploreCR_Residual_NORMAL()
 	{
@@ -1484,7 +1891,7 @@ public class CFLMatch {
 			//============== generate the neighborhood label array =======================
 			//			int first = query_nodes_array_info[current_node];
 			//			memset(NLF_array, 0, sizeof(int) * NLF_size);
-			NLF_array = new int[4 * NLF_size];
+			NLF_array = new int[NLF_size];
 			//			for (int j = first; j < first + degree_cur; j++) {
 			for (int neighbor : graph.get(current_node)){
 				int local_label = nodes_label_query[neighbor];
@@ -1599,7 +2006,7 @@ public class CFLMatch {
 					//============== generate the neighborhood label array =======================
 //					int first = query_nodes_array_info[represent_node];
 //					memset(NLF_array, 0, sizeof(int) * NLF_size);
-					NLF_array = new int[4 * NLF_size];
+					NLF_array = new int[NLF_size];
 //					for (int j = first; j < first + degree_cur; j++) {
 					for (int neighbor : graph.get(represent_node)){
 
@@ -2137,6 +2544,62 @@ public class CFLMatch {
 		unit.start_pos = start_pos;
 	}
 	
+	public void getTreeMatchingSequence_TREE(){
+
+		if (residual_tree_match_seq_index == 0){
+			residual_tree_match_seq_index = 0;
+			residual_tree_match_seq[residual_tree_match_seq_index ++] = root_node_id;	//add the root
+			return;
+		}
+
+		if (residual_tree_match_seq_index == 1){
+			residual_tree_match_seq_index = 0;
+			residual_tree_match_seq[residual_tree_match_seq_index ++] = root_node_id;	//add the root
+			residual_tree_match_seq[residual_tree_match_seq_index ++] = residual_tree_leaf_node.get(0).getLeft();	//add the root
+			return;
+		}
+
+		//now we have all the leafs; sort them by the path number
+		for (int i = 0; i < residual_tree_leaf_node_index; i++){
+			int current_node = residual_tree_leaf_node.get(i).getLeft();
+			int sum = 0;
+			for (int x = 0; x < indexSet[current_node].size; x++)
+				sum += indexSet[current_node].path[x];
+			residual_tree_leaf_node.get(i).setRight((double)sum);
+		}
+
+//		sort (residual_tree_leaf_node, residual_tree_leaf_node + residual_tree_leaf_node_index, sort_by_second_element);
+		Collections.sort(residual_tree_leaf_node.subList(0, residual_tree_leaf_node_index), new Comparator<Pair<Integer, Double>>() {
+
+			public int compare(Pair<Integer, Double> o1, Pair<Integer, Double> o2) {
+				return o1.getRight().compareTo(o2.getRight());
+			}
+		});
+
+		residual_tree_match_seq_index = 0;
+//		memset(sequence_flag_query, 0, sizeof(int) * cnt_node_query); //reset all flag
+		for(int i = 0; i < cnt_node_query; i++)
+			sequence_flag_query[i] = 0;
+		
+		sequence_flag_query[root_node_id] = 1;	//set the root to 1
+		residual_tree_match_seq[residual_tree_match_seq_index ++] = root_node_id;	//add the root
+
+		for (int i = 0; i < residual_tree_leaf_node_index; i++){
+			int leaf_id = residual_tree_leaf_node.get(i).getLeft();
+			count_global_temp_array_1 = 0;
+			while (sequence_flag_query[leaf_id] == 0){
+				global_temp_array_1[count_global_temp_array_1 ++] = leaf_id;
+				sequence_flag_query[leaf_id] = 1;
+				leaf_id = tree_node_parent[leaf_id];
+			}
+			while (count_global_temp_array_1 != 0){
+				count_global_temp_array_1 --;
+				residual_tree_match_seq[residual_tree_match_seq_index ++] = global_temp_array_1[count_global_temp_array_1];
+			}
+		}
+
+	}
+	
 	public void getTreeMatchingSequence_NORMAL(){
 
 		//now we have all the leafs; sort them by the path number
@@ -2170,6 +2633,146 @@ public class CFLMatch {
 				residual_tree_match_seq[residual_tree_match_seq_index ++] = global_temp_array_1[count_global_temp_array_1];
 			}
 		}
+	}
+	
+	public int[] getTreeMapping_Enumeration() {
+		SearchUnit temp_su;
+		int current;
+		int parent;
+		NodeIndexUnit index_unit;
+		int pos;
+		int data_id ;
+		int current_tree_query_index = 1;
+		int tree_sequence_size = residual_tree_match_seq_index;
+		int[] found_mapping_enumeration = new int[1];
+		for (int i = 0; i < indexSet[root_node_id].size; i++) {
+			int root_cand_id = indexSet[root_node_id].candidates[i];
+			if (root_cand_id == -1)//if it is pre-filtered
+				continue;
+			mapping_flag_data[root_cand_id] = true;//flag for already matched data node
+			actual_mapping[0] = root_cand_id;
+			self_pos[root_node_id] = i;
+			current_tree_query_index = 1;
+			while (true) {
+				if (current_tree_query_index == 0)//"No MATCH found!"
+					break;
+				if (current_tree_query_index == tree_sequence_size) { // found a mapping
+
+					if (NEC_mapping_pair_index != 0)
+						LeafMappingEnumeration(found_mapping_enumeration);
+					else {
+						for (int i_local = 0; i_local < residual_tree_match_seq_index; i_local++) //for tree if existed
+							all_mapping[ residual_tree_match_seq[i_local] ] = actual_mapping_tree[i_local];
+
+						boolean satisfied = true;
+//	if(SPAT_PREDICATE)
+//	{
+//						for (map<int, MyRect>::iterator it = spat_pred.begin(); it != spat_pred.end(); it++)
+//						{
+//							int spat_id = (*it).first;
+//							MyRect query_rect = (*it).second.copy();
+//
+//							int map_node_id = all_mapping[spat_id];
+//							if(!entities[map_node_id].IsSpatial)
+//							{
+//								satisfied = false;
+//								break;
+//							}
+//							Location loc = entities[map_node_id].location;
+//
+//							if (Located_In(query_rect, loc))
+//								continue;
+//							else
+//							{
+//								satisfied = false;
+//								break;
+//							}
+//						}
+//	}
+						if(satisfied)
+						{
+							found_mapping_enumeration[0] = found_mapping_enumeration[0] + 1;
+							if(COUT_RESULT)
+							{
+								System.out.print(String.format("Mapping %d => ", found_mapping_enumeration[0]));
+								for(int i_local = 0; i_local < cnt_node_query; i_local++)
+									System.out.print(String.format("%d:%d ", i_local, all_mapping[i_local]));
+								System.out.print("\n");
+							}
+						}
+					}
+					if (found_mapping_enumeration[0] >= LIMIT){
+						while (current_tree_query_index != 0){
+							current_tree_query_index --;
+							mapping_flag_data[ actual_mapping_tree[current_tree_query_index] ] = false;
+							su_tree[current_tree_query_index].address = null;
+						}
+						mapping_flag_data[root_cand_id] = true;
+						return found_mapping_enumeration;
+					}
+					mapping_flag_data[actual_mapping_tree[tree_sequence_size - 1]] = false;
+					current_tree_query_index --;
+					continue;
+				}
+				char back_trace = 0;
+				temp_su = su_tree[current_tree_query_index];
+				current = residual_tree_match_seq[current_tree_query_index];
+				parent = tree_node_parent[current];
+				index_unit = indexSet[current];
+				if (temp_su.address == null) { // has no value
+					int parent_index = self_pos[parent];
+					temp_su.address = index_unit.index[parent_index];
+					temp_su.address_size = index_unit.size_of_index[parent_index];
+					if (temp_su.address_size == 0) {
+						temp_su.address = null;//clear the temp_address and it index position
+						current_tree_query_index--; // roll back one node in the matching sequence
+						if (current_tree_query_index != 0)
+							mapping_flag_data[ actual_mapping_tree[current_tree_query_index] ] = false;
+						continue;
+					}
+					temp_su.address_pos = 0;
+				} else { // has value
+					temp_su.address_pos++; // update the index by one
+					if ( temp_su.address_pos == temp_su.address_size) {
+						temp_su.address = null;//clear the temp_address and it index position
+						current_tree_query_index--;
+						if (current_tree_query_index != -1)
+							mapping_flag_data[ actual_mapping_tree[ current_tree_query_index ] ] = false;
+						continue;
+					}
+				}
+				back_trace = 0; //actually, this line is not necessary, when processed here, the back_trace must be false...
+				while (true) {
+					//break, until find a mapping for this node
+					//or cannot find a mapping after examining all candidates
+					pos = index_unit.index[ self_pos[parent] ][ temp_su.address_pos ];
+					data_id = index_unit.candidates[pos];
+					if (data_id != -1 && mapping_flag_data[data_id] == false) { //first check: this id should have not been mapped before
+						actual_mapping_tree[current_tree_query_index] = data_id;
+						self_pos[current] = pos;
+						mapping_flag_data[data_id] = true;
+						break;
+					} else { //mapping NOT OK!
+						temp_su.address_pos++;//not ok, then we need the next result
+						if (temp_su.address_pos == temp_su.address_size) { // no more data id, so cannot find a match for this query node
+							back_trace = 1; // indicate that no result is being found, so we need to trace back_trace
+							break;
+						}
+					}
+				} //end while
+				if (back_trace != 0) { //BACK TRACE
+					back_trace = 0;
+					temp_su.address = null;//clear the temp_address and it index position
+					current_tree_query_index--;
+					if (current_tree_query_index != -1)
+						mapping_flag_data[ actual_mapping_tree[ current_tree_query_index ] ] = false;
+				} else
+					current_tree_query_index++;
+
+			}//end while
+			mapping_flag_data[root_cand_id] = false;
+		}
+		return found_mapping_enumeration;
 	}
 	
 	public int[] getFullMapping_Enumeration() 
