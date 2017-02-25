@@ -582,4 +582,12 @@ public class OwnMethods {
         }
         return true;
     }
+    
+    public static boolean Intersect(MyRectangle rect1, MyRectangle rect2)
+    {
+    	if(rect1.min_x > rect2.max_x || rect1.min_y > rect2.max_y || rect1.max_x < rect2.min_x || rect1.max_y < rect2.min_y)
+    		return false;
+    	else
+    		return true;
+    }
 }
