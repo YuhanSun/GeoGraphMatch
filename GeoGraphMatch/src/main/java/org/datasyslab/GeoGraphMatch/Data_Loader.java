@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -18,8 +19,125 @@ import org.neo4j.unsafe.batchinsert.BatchInserters;
 
 public class Data_Loader {
 	
-	//load graph without spatial info
-	public static void LoadGraph(String graphfile_path, String db_path, HashMap<Integer, Integer> transfer_table)
+	/**
+	 * load graph, entity, hrmbr with my format
+	 * @param graphfile_path
+	 * @param entity_path
+	 * @param hmbr_path
+	 * @param db_path
+	 */
+	public static void LoadGraph(String graphfile_path, String entity_path, String hmbr_path, String db_path)
+	{
+		BufferedReader reader_graph = null;
+		BufferedReader reader_entity = null;
+		BufferedReader reader_hmbr = null;
+		BatchInserter inserter = null;
+		String line_graph = null;
+		String line_entity = null;
+		String line_hmbr = null;
+		Map<String, String> config = new HashMap<String, String>();
+		config.put("dbms.pagecache.memory", "10g");
+		
+		Config p_Config = new Config();
+		String lon_name = p_Config.GetLongitudePropertyName();
+		String lat_name = p_Config.GetLatitudePropertyName();
+		
+		try
+		{
+			inserter = BatchInserters.inserter(new File(db_path).getAbsolutePath(),config);
+			reader_graph = new BufferedReader(new FileReader(new File(graphfile_path)));
+			reader_entity = new BufferedReader(new FileReader(new File(entity_path)));
+			reader_hmbr = new BufferedReader(new FileReader(new File(hmbr_path)));
+			line_graph = reader_graph.readLine();
+			line_entity = reader_entity.readLine();
+			line_hmbr = reader_hmbr.readLine();
+			
+			String [] list_hmbr = line_hmbr.split(","); 
+			int node_count = Integer.parseInt(list_hmbr[0]);
+			if(node_count != Integer.parseInt(line_entity) || node_count != Integer.parseInt(line_entity))
+				throw new Exception(String.format("node count mismatch in: %s\n%s\n%s\n", graphfile_path, entity_path, hmbr_path));
+			
+			int hop_num = Integer.parseInt(list_hmbr[1]);
+			
+			for(int i = 0; i<node_count; i++)//read nodes and labels
+			{
+				line_entity = reader_entity.readLine();
+				String [] list_entity = line_entity.split(",");
+				
+				line_hmbr = reader_hmbr.readLine();
+				list_hmbr = line_hmbr.split(";");
+				
+				Map<String, Object> properties = new HashMap<String, Object>();
+				
+				ArrayList<String> hmbr = new ArrayList<String>(hop_num);
+				for ( int j = 0; j < hop_num; j++)
+				{
+					String start = list_hmbr[j].substring(0, 2);
+					
+					if(start.equals("0"))
+						hmbr.add(null);
+					else
+						hmbr.add(list_hmbr[j].substring(2, list_hmbr[j].length()));
+				}
+				properties.put("hmbr", hmbr.toString());
+				
+				int isspatial = Integer.parseInt(list_entity[1]);
+				if(isspatial == 1)
+				{
+					double lon = Double.parseDouble(list_entity[2]);
+					double lat = Double.parseDouble(list_entity[3]);
+					properties.put(lon_name, lon);
+					properties.put(lat_name, lat);
+					Label node_label = DynamicLabel.label("GRAPH_1");
+					inserter.createNode(i, properties, node_label);
+				}
+				else
+				{
+					Label node_label = DynamicLabel.label("GRAPH_0");
+					inserter.createNode(i, properties, node_label);
+				}
+			}
+			
+			RelationshipType edge_label = DynamicRelationshipType.withName("LINK");
+			for(int i = 0; i < node_count; i++)//read edges
+			{
+				line_graph = reader_graph.readLine();
+				String [] list_graph = line_graph.split(",");
+				int start = Integer.parseInt(list_graph[0]);
+				
+				if(i != start)
+				{
+					OwnMethods.Print(line_graph);
+					throw new Exception(String.format("node index inconsistent with line index in %s", graphfile_path));
+				}
+				
+				int neighbor_count = Integer.parseInt(list_graph[1]);
+				
+				for ( int j = 0; j < neighbor_count; j++)
+				{
+					int end = Integer.parseInt(list_graph[j+2]);
+					if(start < end)
+						inserter.createRelationship(start, end, edge_label, null);
+				}
+			}
+			reader_graph.close();
+			reader_entity.close();
+			reader_hmbr.close();
+			inserter.shutdown();
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * load CFL format graph without spatial
+	 * @param graphfile_path
+	 * @param db_path
+	 * @param transfer_table
+	 */
+	public static void LoadGraphCFL(String graphfile_path, String db_path, HashMap<Integer, Integer> transfer_table)
 	{
 		BufferedReader reader = null;
 		BatchInserter inserter = null;
@@ -152,15 +270,25 @@ public class Data_Loader {
 			e.printStackTrace();
 		}
 	}
-
+	
 	public static void LoadGraph()
+	{
+		String dataset = "Gowalla";
+		String graphfile_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/" + dataset + "/graph.txt";
+		String entity_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/" + dataset + "/entity.txt";
+		String hmbr_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/" + dataset + "/HMBR.txt";
+		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_"+dataset+"/data/graph.db";
+		LoadGraph(graphfile_path, entity_path, hmbr_path, db_path);
+	}
+
+	public static void LoadGraphCFL()
 	{
 		String data_name = "hprd";
 		String graphfile_path = "/home/yuhansun/Documents/GeoGraphMatchData/" + data_name;
 		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_"+data_name+"/data/graph.db";
 		String transfer_table_path = "/home/yuhansun/Documents/GeoGraphMatchData/transfertable_"+data_name+".txt";
 		HashMap<Integer, Integer> transfer_table = Utility.Read_Transfer_Table(transfer_table_path);
-		LoadGraph(graphfile_path, db_path, transfer_table);
+		LoadGraphCFL(graphfile_path, db_path, transfer_table);
 	}
 	
 	public static void LoadQueryGraph()
@@ -176,8 +304,8 @@ public class Data_Loader {
 	}
 	
 	public static void main(String[] args) {
-//		LoadGraph();
-		LoadQueryGraph();
+		LoadGraph();
+//		LoadQueryGraph();
 	}
 
 }
