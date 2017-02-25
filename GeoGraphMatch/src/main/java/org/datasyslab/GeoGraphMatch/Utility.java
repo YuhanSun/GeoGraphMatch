@@ -125,6 +125,72 @@ public class Utility {
 	}
 	
 	/**
+	 * read query graphs from a file with specific number no transfer table
+	 * @param querygraph_path
+	 * @param read_count
+	 * @return
+	 */
+	public static ArrayList<Query_Graph> ReadQueryGraphs(String querygraph_path, int read_count)
+	{
+		ArrayList<Query_Graph> query_Graphs = new ArrayList<Query_Graph>();
+		BufferedReader reader = null;
+		String line = null;
+		try 
+		{
+			reader = new BufferedReader(new FileReader(new File(querygraph_path)));
+			for(int current_read_count = 0; current_read_count < read_count; current_read_count++)
+			{
+				line = reader.readLine();
+				String [] line_list = line.split(" ");
+				if(line_list.length != 4)
+				{
+					OwnMethods.Print(String.format("query graph first line parameters number mismatch!"));
+					return null;
+				}
+				if(line_list[0].equals("t") == false)
+				{
+					OwnMethods.Print("query graph first line does begin with 't'!");
+					return null;
+				}
+				int node_count = Integer.parseInt(line_list[2]);
+				int edge_count = Integer.parseInt(line_list[3]);
+				Query_Graph query_Graph = new Query_Graph(node_count);
+				for(int i = 0; i<node_count; i++)
+				{
+					line = reader.readLine();
+					line_list = line.split(" ");
+					int node_id = Integer.parseInt(line_list[0]);
+					if(node_id != i)
+					{
+						OwnMethods.Print(String .format("node_id not consistent with line index at %d", i));
+						OwnMethods.Print(line);
+						return null;
+					}
+					
+					int node_label = Integer.parseInt(line_list[1]);
+					int degree = Integer.parseInt(line_list[2]);
+					
+					query_Graph.label_list[i] = node_label;
+					ArrayList<Integer> neighbors = new ArrayList<Integer>(degree);
+					for(int j = 0; j<degree; j++)
+					{
+						int neighbor_id = Integer.parseInt(line_list[j+3]);
+						neighbors.add(neighbor_id);
+					}
+					query_Graph.graph.add(neighbors);
+				}
+				query_Graphs.add(query_Graph);
+			}
+			reader.close();
+		}
+		catch (Exception e) {
+			OwnMethods.Print(line);
+			e.printStackTrace();
+		}
+		return query_Graphs;
+	}
+	
+	/**
 	 * read query graphs from a file with specific number
 	 * @param querygraph_path
 	 * @param transfer_table
