@@ -23,15 +23,15 @@ import java.util.Iterator;
 public class Neo4j_Graph_Store
 implements Graph_Store_Operation {
     private String SERVER_ROOT_URI;
-    private String longitude_property_name;
-    private String latitude_property_name;
+    private String lon_name;
+    private String lat_name;
     private WebResource resource;
 
     public Neo4j_Graph_Store() {
         Config config = new Config();
         this.SERVER_ROOT_URI = config.GetServerRoot();
-        this.longitude_property_name = config.GetLongitudePropertyName();
-        this.latitude_property_name = config.GetLatitudePropertyName();
+        this.lon_name = config.GetLongitudePropertyName();
+        this.lat_name = config.GetLatitudePropertyName();
         String txUri = String.valueOf(this.SERVER_ROOT_URI) + "/transaction/commit";
         this.resource = Client.create().resource(txUri);
     }
@@ -233,7 +233,7 @@ implements Graph_Store_Operation {
     }
 
     public ArrayList<Integer> GetSpatialVertices() {
-        String query = "match (a:Graph_node) where has (a." + this.longitude_property_name + ") return id(a)";
+        String query = "match (a:Graph_node) where has (a." + this.lon_name + ") return id(a)";
         String result = Neo4j_Graph_Store.Execute(this.resource, query);
         HashSet<Integer> hs = Neo4j_Graph_Store.GetExecuteResultDataInSet(result);
         ArrayList<Integer> l = new ArrayList<Integer>();
@@ -401,6 +401,10 @@ implements Graph_Store_Operation {
         return true;
     }
     
+    /**
+     * subgraph isomorphism without limit
+     * @param query_Graph
+     */
     public void SubgraphMatch(Query_Graph query_Graph)//use neo4j query
 	{
 		String query = "match ";
@@ -424,9 +428,182 @@ implements Graph_Store_Operation {
 		query += " return id(a0)";
 		for(int i = 1; i<query_Graph.graph.size(); i++)
 			query += String.format(",id(a%d)", i);
-		query += "limit 1000";
 		OwnMethods.Print(query);
 		String result = Neo4j_Graph_Store.Execute(this.resource, query);
 		OwnMethods.Print(result);
 	}
+    
+    /**
+     * subgraph isomorphism with limit
+     * @param query_Graph
+     * @param limit
+     */
+    public void SubgraphMatch(Query_Graph query_Graph, int limit)//use neo4j query
+	{
+		String query = "match ";
+		
+		query += String.format("(a0:GRAPH_%d)", query_Graph.label_list[0]);
+		for(int i = 1; i < query_Graph.graph.size(); i++)
+		{
+			query += String.format(",(a%d:GRAPH_%d)",i, query_Graph.label_list[i]);
+		}
+		
+		for(int i = 0; i<query_Graph.graph.size(); i++)
+		{
+			for(int j = 0;j<query_Graph.graph.get(i).size();j++)
+			{
+				int neighbor = query_Graph.graph.get(i).get(j);
+				if(neighbor > i)
+					query += String.format(",(a%d)--(a%d)", i, neighbor);
+			}
+		}
+		
+		query += " return id(a0)";
+		for(int i = 1; i<query_Graph.graph.size(); i++)
+			query += String.format(",id(a%d)", i);
+		query += " limit " + limit;
+		OwnMethods.Print(query);
+		String result = Neo4j_Graph_Store.Execute(this.resource, query);
+		OwnMethods.Print(result);
+	}
+    
+    /**
+     * explain query plan for subgraph query
+     * @param query_Graph
+     * @param limit
+     */
+    public void Explain_SubgraphMatch(Query_Graph query_Graph)//use neo4j query
+	{
+		String query = "explain match ";
+		
+		query += String.format("(a0:GRAPH_%d)", query_Graph.label_list[0]);
+		for(int i = 1; i < query_Graph.graph.size(); i++)
+		{
+			query += String.format(",(a%d:GRAPH_%d)",i, query_Graph.label_list[i]);
+		}
+		
+		for(int i = 0; i<query_Graph.graph.size(); i++)
+		{
+			for(int j = 0;j<query_Graph.graph.get(i).size();j++)
+			{
+				int neighbor = query_Graph.graph.get(i).get(j);
+				if(neighbor > i)
+					query += String.format(",(a%d)--(a%d)", i, neighbor);
+			}
+		}
+		
+		query += " return id(a0)";
+		for(int i = 1; i<query_Graph.graph.size(); i++)
+			query += String.format(",id(a%d)", i);
+		OwnMethods.Print(query);
+		String result = Neo4j_Graph_Store.Execute(this.resource, query);
+		OwnMethods.Print(result);
+	}
+    
+    /**
+     * subgraph isomorphism with spatial predicate
+     * @param query_Graph
+     * @param limit
+     */
+    public void SubgraphMatch_Spa(Query_Graph query_Graph, int limit)//use neo4j query
+	{
+		String query = "match ";
+		
+		//label
+		query += String.format("(a0:GRAPH_%d)", query_Graph.label_list[0]);
+		for(int i = 1; i < query_Graph.graph.size(); i++)
+		{
+			query += String.format(",(a%d:GRAPH_%d)",i, query_Graph.label_list[i]);
+		}
+		
+		//edge
+		for(int i = 0; i<query_Graph.graph.size(); i++)
+		{
+			for(int j = 0;j<query_Graph.graph.get(i).size();j++)
+			{
+				int neighbor = query_Graph.graph.get(i).get(j);
+				if(neighbor > i)
+					query += String.format(",(a%d)--(a%d)", i, neighbor);
+			}
+		}
+		
+		//spatial predicate
+		int i = 0;
+		for(; i < query_Graph.label_list.length; i++)
+			if(query_Graph.spa_predicate[i] != null)
+			{
+				MyRectangle qRect = query_Graph.spa_predicate[i];
+				query += String.format(" where %f < a%d.%s < %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f < a%d.%s < %f", qRect.min_y, i, lat_name, qRect.max_y);
+				i++;
+				break; 
+			}
+		for(; i < query_Graph.label_list.length; i++)
+			if(query_Graph.spa_predicate[i] != null)
+			{
+				MyRectangle qRect = query_Graph.spa_predicate[i];
+				query += String.format(" and %f < a%d.%s < %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f < a%d.%s < %f", qRect.min_y, i, lat_name, qRect.max_y);
+			}
+		
+		//return
+		query += " return id(a0)";
+		for(i = 1; i<query_Graph.graph.size(); i++)
+			query += String.format(",id(a%d)", i);
+		query += " limit " + limit;
+		OwnMethods.Print(query);
+		String result = Neo4j_Graph_Store.Execute(this.resource, query);
+		OwnMethods.Print(result);
+	}
+    
+    public void Explain_SubgraphMatch_Spa(Query_Graph query_Graph)//use neo4j query
+	{
+		String query = "explain match ";
+		
+		//label
+		query += String.format("(a0:GRAPH_%d)", query_Graph.label_list[0]);
+		for(int i = 1; i < query_Graph.graph.size(); i++)
+		{
+			query += String.format(",(a%d:GRAPH_%d)",i, query_Graph.label_list[i]);
+		}
+		
+		//edge
+		for(int i = 0; i<query_Graph.graph.size(); i++)
+		{
+			for(int j = 0;j<query_Graph.graph.get(i).size();j++)
+			{
+				int neighbor = query_Graph.graph.get(i).get(j);
+				if(neighbor > i)
+					query += String.format(",(a%d)--(a%d)", i, neighbor);
+			}
+		}
+		
+		//spatial predicate
+		int i = 0;
+		for(; i < query_Graph.label_list.length; i++)
+			if(query_Graph.spa_predicate[i] != null)
+			{
+				MyRectangle qRect = query_Graph.spa_predicate[i];
+				query += String.format(" where %f < a%d.%s < %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f < a%d.%s < %f", qRect.min_y, i, lat_name, qRect.max_y);
+				i++;
+				break; 
+			}
+		for(; i < query_Graph.label_list.length; i++)
+			if(query_Graph.spa_predicate[i] != null)
+			{
+				MyRectangle qRect = query_Graph.spa_predicate[i];
+				query += String.format(" and %f < a%d.%s < %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f < a%d.%s < %f", qRect.min_y, i, lat_name, qRect.max_y);
+			}
+		
+		//return
+		query += " return id(a0)";
+		for(i = 1; i<query_Graph.graph.size(); i++)
+			query += String.format(",id(a%d)", i);
+		OwnMethods.Print(query);
+		String result = Neo4j_Graph_Store.Execute(this.resource, query);
+		OwnMethods.Print(result);
+	}
+    
 }
