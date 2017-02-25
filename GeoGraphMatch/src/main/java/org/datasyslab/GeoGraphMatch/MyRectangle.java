@@ -19,4 +19,14 @@ public class MyRectangle {
         this.max_x = 0.0;
         this.max_y = 0.0;
     }
+    
+    public MyRectangle(String str)
+    {
+    	str = str.substring(1, str.length() - 1);
+    	String [] liStrings = str.split(",");
+    	this.min_x = Double.parseDouble(liStrings[0]);
+    	this.min_y = Double.parseDouble(liStrings[1]);
+    	this.max_x = Double.parseDouble(liStrings[2]);
+    	this.max_y = Double.parseDouble(liStrings[3]);
+    }
 }
