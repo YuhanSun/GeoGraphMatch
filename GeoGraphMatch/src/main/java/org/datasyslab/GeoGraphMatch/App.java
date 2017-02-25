@@ -1,7 +1,10 @@
 package org.datasyslab.GeoGraphMatch;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+
+import javax.management.Query;
 
 /**
  * Hello world!
@@ -21,17 +24,47 @@ public class App
     public static void main( String[] args )
     {
 //    	CFLMatch_test(); 
-    	arbitary();
+//    	arbitary();
+    	neo4j_query_test();
     }
     
     
     public static void neo4j_query_test()
     {
-    	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/hprd25d";
-//    	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/test_query_graph";
-//    	String query_graphs_path = "/home/yuhansun/Documents/GeoGraphMatchData/human10s";
-//        ArrayList<Query_Graph> query_Graphs = Utility.ReadQueryGraphs(query_graphs_path, 1);
-//        Neo4j_Graph_Store p_Neo4j_Graph_Store = new Neo4j_Graph_Store();
-//        p_Neo4j_Graph_Store.SubgraphMatch(query_Graphs.get(0));
+    	String querygraph_path = "/home/yuhansun/Documents/GeoGraphMatchData/data/QuerySet/hprd25d";
+//    	String querygraph_path = "/home/yuhansun/Documents/GeoGraphMatchData/test_query_graph";
+//    	String querygraph_path = "/home/yuhansun/Documents/GeoGraphMatchData/human10s";
+    	
+      Query_Graph query_Graph = new Query_Graph(3);
+      
+      ArrayList<Integer> node0 = new ArrayList<Integer>(Arrays.asList(1));
+      ArrayList<Integer> node1 = new ArrayList<Integer>(Arrays.asList(0,2));
+      ArrayList<Integer> node2 = new ArrayList<Integer>(Arrays.asList(1));
+      query_Graph.graph = new ArrayList<ArrayList<Integer>>(Arrays.asList(node0, node1, node2));
+//      query_Graph.label_list = new int[] {1, 2, 10};
+      query_Graph.label_list = new int[] {0, 0, 1};
+      query_Graph.spa_predicate[2] = new MyRectangle(114.735827,16.403898,115.975189,17.643261);
+//      query_Graph.spa_predicate[2] = new MyRectangle(-100, -45, 100, 45);
+    	
+//    	String transfer_table_path = "/home/yuhansun/Documents/GeoGraphMatchData/data/transfertable_hprd.txt";
+//    	HashMap<Integer, Integer> transfer_table = Utility.Read_Transfer_Table(transfer_table_path);
+//    	ArrayList<Query_Graph> query_graphs= Utility.ReadQueryGraphs(querygraph_path, transfer_table);
+//    	Query_Graph query_Graph = query_graphs.get(0);
+    	
+        Neo4j_Graph_Store p_Neo4j_Graph_Store = new Neo4j_Graph_Store();
+        
+
+        
+      p_Neo4j_Graph_Store.SubgraphMatch(query_Graph, 1000);
+//        p_Neo4j_Graph_Store.Explain_SubgraphMatch_Spa(query_Graph);
+        
+//        p_Neo4j_Graph_Store.SubgraphMatch_Spa(query_Graph, 1000);
+        
+        
+        
+        
+        
+//      ArrayList<Query_Graph> query_Graphs = Utility.ReadQueryGraphs(query_graphs_path, transfer_table);
+//        p_Neo4j_Graph_Store.SubgraphMatch(query_Graphs.get(0), 1000);
     }
 }
