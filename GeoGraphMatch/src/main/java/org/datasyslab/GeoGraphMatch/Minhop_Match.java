@@ -6,6 +6,9 @@ import java.util.Queue;
 
 import javax.management.Query;
 
+import org.neo4j.graphdb.ExecutionPlanDescription;
+import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.register.Register.Int;
 import org.omg.CORBA.PUBLIC_MEMBER;
 
@@ -41,21 +44,61 @@ public class Minhop_Match {
 		String querygraph_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/path.txt";
 		ArrayList<Query_Graph> query_Graphs = Utility.ReadQueryGraphs(querygraph_path, 2);
 		
-		Query_Graph query_Graph = query_Graphs.get(1);
+		Query_Graph query_Graph = query_Graphs.get(0);
 		query_Graph.spa_predicate = new MyRectangle[2];
 //		query_Graph.spa_predicate[2] = new MyRectangle(114.735827,16.403898,115.975189,17.643261);
 		query_Graph.spa_predicate[1] = new MyRectangle(-80.438853, 34.927905,-76.843579, 36.670577);
 		
 		Minhop_Match minhop_Match = new Minhop_Match();
-		minhop_Match.SubgraphMatch_Spa(query_Graph, 100000);
+		long start = System.currentTimeMillis();
+		ArrayList<int[]> maps = minhop_Match.SubgraphMatch_Spa(query_Graph, 100000);
+		OwnMethods.Print(System.currentTimeMillis() - start);
 		
+		OwnMethods.Print(maps.size());
 		
 		return;
+	}
+	
+	public static void GetQueryPlanTest()
+	{
+		String querygraph_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/path.txt";
+		ArrayList<Query_Graph> query_Graphs = Utility.ReadQueryGraphs(querygraph_path, 2);
+		Query_Graph query_Graph = query_Graphs.get(0);
+		
+		query_Graph.spa_predicate = new MyRectangle[2];
+		query_Graph.spa_predicate[1] = new MyRectangle(-80.438853, 34.927905,-76.843579, 36.670577);
+		
+		Config config = new Config();
+		String lon_name = config.GetLongitudePropertyName();	String lat_name = config.GetLatitudePropertyName();
+		String query = Utility.FormCypherQuery(query_Graph, lon_name, lat_name);
+		query += "limit 100";
+		OwnMethods.Print(query);
+		
+		String dbpath = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_Yelp/data/graph.db";
+		Neo4j_API neo4j_API = new Neo4j_API(dbpath);
+		Transaction tx = neo4j_API.graphDb.beginTx();
+		try {
+			Result result = neo4j_API.graphDb.execute(query);
+			ExecutionPlanDescription plan = result.getExecutionPlanDescription();
+			OwnMethods.Print(plan.toString());
+			
+			result.close();
+			neo4j_API.ShutDown();
+			
+			tx.success();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally {
+			tx.close();
+		}
 	}
 
 	public static void main(String[] args) {
 		
-		test();
+//		test();
+		GetQueryPlanTest();
 
 	}
 	
@@ -74,15 +117,13 @@ public class Minhop_Match {
 				query_rect = rect;
 				
 		ArrayList<int[]> maps = new ArrayList<int[]>(limit);
-		for (int[] map : maps)
-			map = new int[query_node_count];
 
 		int[] match_sequence = {0,1};
 		int[] map_count = {0};
 
 		int id1 = match_sequence[0];
 		int id2 = match_sequence[1];
-		String query = String.format("match (a0:GRAPH_%d) return id(a0),a0 limit 2", query_Graph.label_list[id1]);
+		String query = String.format("match (a0:GRAPH_%d) return id(a0),a0", query_Graph.label_list[id1]);
 
 		if(TIME_RECORD)
 			start = System.currentTimeMillis();
@@ -115,13 +156,12 @@ public class Minhop_Match {
 			else
 			{
 				 query = String.format("match (a)--(b:GRAPH_1) where id(a) = %d and %f < b.%s < %f and %f < b.%s < %f return id(b)", data_id, query_rect.min_x, lon_name, query_rect.max_x, query_rect.min_y, lat_name, query_rect.max_y);
-				 OwnMethods.Print(query);
+//				 OwnMethods.Print(query);return maps;
 				 result = p_neo.Execute(query);
 				 JsonArray jsonArray2 = Neo4j_Graph_Store.GetExecuteResultDataASJsonArray(result);
-				 OwnMethods.Print(result);
 				 for ( int i = 0; i < jsonArray2.size(); i++)
 				 {
-					 int data_id2= jsonArray.get(i).getAsJsonObject().get("row").getAsInt();
+					 int data_id2 = jsonArray.get(i).getAsJsonObject().get("row").getAsJsonArray().get(0).getAsInt();
 					 maps.add(new int[]{data_id, data_id2});
 					 map_count[0]+= 1;
 					 if(map_count[0] == limit)
@@ -180,8 +220,6 @@ public class Minhop_Match {
 					pre_level_count = cur_level_count;
 					cur_level_count = 0;
 				}
-				
-				
 			}
 		}
 		

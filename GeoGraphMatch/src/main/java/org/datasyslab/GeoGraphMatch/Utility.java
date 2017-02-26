@@ -322,4 +322,53 @@ public class Utility {
 		}
 		return query_Graphs;
 	}
+	
+	public static String FormCypherQuery(Query_Graph query_Graph, String lon_name, String lat_name) 
+	{
+		String query = "match ";
+		
+		//label
+		query += String.format("(a0:GRAPH_%d)", query_Graph.label_list[0]);
+		for(int i = 1; i < query_Graph.graph.size(); i++)
+		{
+			query += String.format(",(a%d:GRAPH_%d)",i, query_Graph.label_list[i]);
+		}
+		
+		//edge
+		for(int i = 0; i<query_Graph.graph.size(); i++)
+		{
+			for(int j = 0;j<query_Graph.graph.get(i).size();j++)
+			{
+				int neighbor = query_Graph.graph.get(i).get(j);
+				if(neighbor > i)
+					query += String.format(",(a%d)--(a%d)", i, neighbor);
+			}
+		}
+		
+		//spatial predicate
+		int i = 0;
+		for(; i < query_Graph.label_list.length; i++)
+			if(query_Graph.spa_predicate[i] != null)
+			{
+				MyRectangle qRect = query_Graph.spa_predicate[i];
+				query += String.format(" where %f < a%d.%s < %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f < a%d.%s < %f", qRect.min_y, i, lat_name, qRect.max_y);
+				i++;
+				break; 
+			}
+		for(; i < query_Graph.label_list.length; i++)
+			if(query_Graph.spa_predicate[i] != null)
+			{
+				MyRectangle qRect = query_Graph.spa_predicate[i];
+				query += String.format(" and %f < a%d.%s < %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f < a%d.%s < %f", qRect.min_y, i, lat_name, qRect.max_y);
+			}
+		
+		//return
+		query += " return id(a0)";
+		for(i = 1; i<query_Graph.graph.size(); i++)
+			query += String.format(",id(a%d)", i);
+		
+		return query;
+	}
 }
