@@ -550,10 +550,14 @@ implements Graph_Store_Operation {
 		query += " return id(a0)";
 		for(i = 1; i<query_Graph.graph.size(); i++)
 			query += String.format(",id(a%d)", i);
-		query += " limit " + limit;
+		if ( limit != -1)
+			query += " limit " + limit;
 		OwnMethods.Print(query);
 		String result = Neo4j_Graph_Store.Execute(this.resource, query);
-		OwnMethods.Print(result);
+//		OwnMethods.Print(result);
+		
+		JsonArray jsonArray = Neo4j_Graph_Store.GetExecuteResultDataASJsonArray(result);
+		OwnMethods.Print(jsonArray.size());
 	}
     
     public void Explain_SubgraphMatch_Spa(Query_Graph query_Graph)//use neo4j query
