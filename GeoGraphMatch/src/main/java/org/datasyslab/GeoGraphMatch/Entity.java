@@ -16,4 +16,15 @@ public class Entity {
         this.lon = lon;
         this.lat = lat;
     }
+    
+    @Override
+    public String toString()
+    {
+    	String string = "";
+    	string += "(" + Boolean.valueOf(IsSpatial) + ", ";
+    	string += Double.toString(lon);
+    	string += " ,";
+    	string += Double.toString(lat) + ")";
+    	return string;
+    }
 }
