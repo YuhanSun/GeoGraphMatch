@@ -1,6 +1,11 @@
 package org.datasyslab.GeoGraphMatch;
 
 import com.sun.jersey.api.client.WebResource;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.index.strtree.STRtree;
+
 import java.io.BufferedReader;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
@@ -21,13 +26,91 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Random;
+
+import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Result;
 import org.roaringbitmap.RoaringBitmap;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
 
 public class OwnMethods {
+	
+	public static ArrayList<Integer> GetRandom_NoDuplicate(ArrayList<Integer> wholeset, int count)
+	{
+		ArrayList<Integer> result = new ArrayList<Integer>(count);
+		HashSet<Integer> hashSet = new HashSet<>();
+		Random random = new Random();
+		while ( hashSet.size() < count)
+		{
+			int index = (int) (random.nextFloat() * wholeset.size());
+			if(hashSet.contains(index) == false)
+			{
+				hashSet.add(index);
+				result.add(wholeset.get(index));
+			}
+		}
+		return result;
+	}
+	
+	public static ArrayList<Integer> ReadCenterID(String path)
+	{
+		ArrayList<Integer> ids = new ArrayList<>();
+		BufferedReader reader = null;
+		String line = null;
+		try {
+			reader = new BufferedReader(new FileReader(new File(path)));
+			while ( (line = reader.readLine()) != null )
+			{
+				int id = Integer.parseInt(line);
+				ids.add(id);
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return ids;
+	}
+	
+	public static ArrayList<MyRectangle> ReadQueryRectangle(String filepath) {
+		ArrayList<MyRectangle> queryrectangles;
+		block13 : {
+			queryrectangles = new ArrayList<MyRectangle>();
+			BufferedReader reader = null;
+			File file = null;
+			try {
+				try {
+					file = new File(filepath);
+					reader = new BufferedReader(new FileReader(file));
+					String temp = null;
+					while ((temp = reader.readLine()) != null) {
+						String[] line_list = temp.split("\t");
+						MyRectangle rect = new MyRectangle(Double.parseDouble(line_list[0]), Double.parseDouble(line_list[1]), Double.parseDouble(line_list[2]), Double.parseDouble(line_list[3]));
+						queryrectangles.add(rect);
+					}
+					reader.close();
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+					if (reader == null) break block13;
+					try {
+						reader.close();
+					}
+					catch (IOException var8_8) {}
+				}
+			}
+			finally {
+				if (reader != null) {
+					try {
+						reader.close();
+					}
+					catch (IOException var8_10) {}
+				}
+			}
+		}
+		return queryrectangles;
+	}
 	
 	public static ArrayList<Integer> ReadTopologicalList(String filepath)
 	{
@@ -56,14 +139,14 @@ public class OwnMethods {
 	}
 	
     public static ArrayList<ArrayList<Integer>> ReadGraph(String graph_path) {
-        ArrayList graph = null;
+        ArrayList<ArrayList<Integer>> graph = null;
         BufferedReader reader = null;
         String str = null;
         try {
             reader = new BufferedReader(new FileReader(new File(graph_path)));
             str = reader.readLine();
             int node_count = Integer.parseInt(str);
-            graph = new ArrayList(node_count);
+            graph = new ArrayList<ArrayList<Integer>>(node_count);
             while ((str = reader.readLine()) != null) {
                 String[] l_str = str.split(",");
                 int id = Integer.parseInt(l_str[0]);
@@ -101,7 +184,7 @@ public class OwnMethods {
             ++i;
         }
         while (!queue.isEmpty()) {
-            int id = (Integer)queue.poll();
+            int id = queue.poll();
             visited_vertices.add(id);
             if (entities.get((int)id).IsSpatial && OwnMethods.Location_In_Rect(entities.get((int)id).lat, entities.get((int)id).lon, query_rect)) {
                 return true;
@@ -448,6 +531,15 @@ public class OwnMethods {
         return 0;
     }
 
+    public static int GetSpatialEntityCount(ArrayList<Entity> entities)
+    {
+    	int count = 0;
+    	for ( Entity entity : entities)
+    		if(entity.IsSpatial)
+    			count++;
+    	return count;
+    }
+    
     public static int GetNodeCount(String datasource) {
         int node_count;
         node_count = 0;
@@ -589,5 +681,36 @@ public class OwnMethods {
     		return false;
     	else
     		return true;
+    }
+    
+    public static long GetTotalDBHits(ExecutionPlanDescription plan)
+    {
+    	long dbhits = 0;
+    	Queue<ExecutionPlanDescription> queue = new LinkedList<>();
+    	if(plan.hasProfilerStatistics())
+    		queue.add(plan);
+    	while(queue.isEmpty() == false)
+    	{
+    		ExecutionPlanDescription planDescription = queue.poll();
+    		dbhits += planDescription.getProfilerStatistics().getDbHits();
+    		for ( ExecutionPlanDescription planDescription2 : planDescription.getChildren())
+    			queue.add(planDescription2);
+    	}
+    	return dbhits;
+    }
+    
+    public static STRtree ConstructSTRee(ArrayList<Entity> entities)
+    {
+    	STRtree strtree = new STRtree();
+
+    	GeometryFactory fact=new GeometryFactory();
+    	for(Entity entity : entities)
+    		if(entity.IsSpatial)
+    		{
+    			Point datapoint = fact.createPoint(new Coordinate(entity.lon, entity.lat));
+    			strtree.insert(datapoint.getEnvelopeInternal(), datapoint);
+    			
+    		}
+    	return strtree;
     }
 }
