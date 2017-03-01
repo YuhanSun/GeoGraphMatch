@@ -10,6 +10,13 @@ import java.util.HashMap;
 
 public class Utility {
 	
+	public static long Average(ArrayList<Long> arraylist)
+	{
+		long sum = 0;
+		for ( long element : arraylist)
+			sum += element;
+		return sum / arraylist.size();
+	}
 	
 	public static int Comparator(int a, int b)
 	{
