@@ -7,6 +7,8 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Map;
 
+import javax.rmi.CORBA.Util;
+
 import org.neo4j.cypher.internal.compiler.v2_2.planner.QueryGraph;
 import org.neo4j.cypher.javacompat.ProfilerStatistics;
 import org.neo4j.graphdb.ExecutionPlanDescription;
@@ -50,11 +52,11 @@ public class Experiment {
 //		Query1_Hot_API();
 //		Query3_Hot_API();
 		
+//		GenerateQueryRectangle();
 //		GetRealSelectivity();
-		GenerateQueryRectangle();
 		
-//		Query_Hot_API(1);
-//		Query_Hot_API(3);
+		Query_Hot_API(1);
+		Query_Hot_API(3);
 		
 	}
 	
@@ -70,11 +72,10 @@ public class Experiment {
 		ArrayList<Integer> center_ids = OwnMethods.ReadCenterID(center_id_path);
 		ArrayList<Integer> final_center_ids = OwnMethods.GetRandom_NoDuplicate(center_ids, experiment_count);
 		
-		double base_selectivity = 0.005;
-		int times = 1;
-		while (times <= 8)
+		double selectivity = 0.000001;
+		int times = 10;
+		while (selectivity <= 1)
 		{
-			double selectivity = base_selectivity * times;
 			int k = (int) (selectivity * spa_count);
 			String write_line = "";
 			for (int id : final_center_ids)
@@ -104,47 +105,132 @@ public class Experiment {
 				write_line += String.format("%f\t%f\t%f\t%f\n", minx, miny, maxx, maxy);
 			}
 			String output_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/"
-					+ "query/spa_predicate/%s/queryrect_%d.txt", dataset, times);
+					+ "query/spa_predicate/%s/queryrect_%s.txt", dataset, String.valueOf(selectivity));
 			OwnMethods.WriteFile(output_path, true, write_line);
-			times *= 2;
+			selectivity *= times;
 			
 		}
 	}
-
 	
+//	public static void GenerateQueryRectangle() {
+//		int experiment_count = 50;
+//		String entity_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/%s/entity.txt", dataset);
+//		ArrayList<Entity> entities = OwnMethods.ReadEntity((String)entity_path);
+//		int spa_count = OwnMethods.GetSpatialEntityCount(entities);
+//		STRtree stRtree = OwnMethods.ConstructSTRee(entities);
+//		
+//		String center_id_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/"
+//				+ "%s/%s_centerids.txt", dataset, dataset);
+//		ArrayList<Integer> center_ids = OwnMethods.ReadCenterID(center_id_path);
+//		ArrayList<Integer> final_center_ids = OwnMethods.GetRandom_NoDuplicate(center_ids, experiment_count);
+//		
+//		double base_selectivity = 0.005;
+//		int times = 1;
+//		while (times <= 8)
+//		{
+//			double selectivity = base_selectivity * times;
+//			int k = (int) (selectivity * spa_count);
+//			String write_line = "";
+//			for (int id : final_center_ids)
+//			{
+//				double lon = entities.get(id).lon;
+//				double lat = entities.get(id).lat;
+//				GeometryFactory factory = new GeometryFactory();
+//				Point center = factory.createPoint(new Coordinate(lon, lat));
+//				Object[] result = stRtree.kNearestNeighbour(center.getEnvelopeInternal(),
+//						new GeometryFactory().toGeometry(center.getEnvelopeInternal()),
+//						new GeometryItemDistance(), k);
+//				double radius = 0.0;
+//				for (Object object : result)
+//				{
+//					Point point = (Point) object;
+//					double dist = center.distance(point);
+//					if(dist > radius)
+//						radius = dist;
+//				}
+//				OwnMethods.Print(radius);
+//				double a = Math.sqrt(Math.PI) * radius;
+//				double minx = center.getX() - a / 2;
+//				double miny = center.getY() - a / 2;
+//				double maxx = center.getX() + a / 2;
+//				double maxy = center.getY() + a / 2;
+//				
+//				write_line += String.format("%f\t%f\t%f\t%f\n", minx, miny, maxx, maxy);
+//			}
+//			String output_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/"
+//					+ "query/spa_predicate/%s/queryrect_%d.txt", dataset, times);
+//			OwnMethods.WriteFile(output_path, true, write_line);
+//			times *= 2;
+//			
+//		}
+//	}
+
 	public static void GetRealSelectivity()
 	{
-		double selectivity = 0.000001;
-		int query_id = 3;
-		
 		String entity_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/Gowalla/entity.txt";
 		ArrayList<Entity> entities = OwnMethods.ReadEntity(entity_path);
 		double spa_count = 1280953;
 		STRtree stRtree = OwnMethods.ConstructSTRee(entities);
 		
-		while ( selectivity < 0.002)
+		int times = 1;
+		double base_selectivity = 0.005;
+		while ( times <= 8)
 		{
-			int log = (int) Math.log10(selectivity);
 			String queryrect_path = String.
-					format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/%s_%d_%d.txt", 
-					dataset, log, query_id);
+					format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/%s/queryrect_%d.txt", 
+					dataset, times);
 			ArrayList<MyRectangle> queryrect = OwnMethods.ReadQueryRectangle(queryrect_path);
 			
 			String output_path = String.
-					format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/selectivity_%s_%d.txt", 
-							dataset, query_id);
+					format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/%s/selectivity.txt", 
+							dataset);
 			
+			double selectivity = base_selectivity * times;
 			String write_line = selectivity + "\n";
 			for ( MyRectangle rectangle : queryrect)
 			{
 				java.util.List<Point> result = stRtree.query(new Envelope(rectangle.min_x, rectangle.max_x,
 						rectangle.min_y, rectangle.max_y));
-				write_line += String.format("%f\n", result.size() / 1280953.0);
+				write_line += String.format("%f\t%d\n", result.size() / 1280953.0, result.size());
 			}
 			OwnMethods.WriteFile(output_path, true, write_line + "\n");
-			selectivity *= 10;
+			times *= 2;
 		}
 	}
+	
+//	public static void GetRealSelectivity()
+//	{
+//		double selectivity = 0.000001;
+//		int query_id = 3;
+//		
+//		String entity_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/Gowalla/entity.txt";
+//		ArrayList<Entity> entities = OwnMethods.ReadEntity(entity_path);
+//		double spa_count = 1280953;
+//		STRtree stRtree = OwnMethods.ConstructSTRee(entities);
+//		
+//		while ( selectivity < 0.002)
+//		{
+//			int log = (int) Math.log10(selectivity);
+//			String queryrect_path = String.
+//					format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/%s_%d_%d.txt", 
+//					dataset, log, query_id);
+//			ArrayList<MyRectangle> queryrect = OwnMethods.ReadQueryRectangle(queryrect_path);
+//			
+//			String output_path = String.
+//					format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/selectivity_%s_%d.txt", 
+//							dataset, query_id);
+//			
+//			String write_line = selectivity + "\n";
+//			for ( MyRectangle rectangle : queryrect)
+//			{
+//				java.util.List<Point> result = stRtree.query(new Envelope(rectangle.min_x, rectangle.max_x,
+//						rectangle.min_y, rectangle.max_y));
+//				write_line += String.format("%f\n", result.size() / 1280953.0);
+//			}
+//			OwnMethods.WriteFile(output_path, true, write_line + "\n");
+//			selectivity *= 10;
+//		}
+//	}
 	
 	public static void Query1_Hot()
 	{
@@ -493,7 +579,7 @@ public class Experiment {
 	{
 		long start;
 		long time;
-		int limit = -1;
+		int limit = 1000;
 		int expe_count = 50;
 		
 		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_Gowalla/data/graph.db";
@@ -502,7 +588,8 @@ public class Experiment {
 		ArrayList<Query_Graph> queryGraphs = Utility.ReadQueryGraphs(querygraph_path, 4);
 		Query_Graph query_Graph = queryGraphs.get(query_id - 1);
 		
-		String result_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/result_%d_API.txt", query_id);
+		String result_detail_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/result_%d_API.txt", query_id);
+		String result_avg_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/result_%d_API_avg.txt", query_id);
 		ArrayList<Long> time_minhop = new ArrayList<>();
 		ArrayList<Long> time_naive = new ArrayList<>();
 		ArrayList<Long> time_minhop_ser = new ArrayList<>();
@@ -512,19 +599,22 @@ public class Experiment {
 		ArrayList<Long> access_minhop = new ArrayList<>();
 		ArrayList<Long> access_naive = new ArrayList<>();
 		
-		OwnMethods.WriteFile(result_path, true, dataset + "\n");
+		OwnMethods.WriteFile(result_detail_path, true, String.format("%s\t%d\n", dataset, limit));
+		OwnMethods.WriteFile(result_avg_path, true, String.format("%s\t%d\n", dataset, limit));
 		
-		double base_selectivity = 0.0005;
-		int times = 1;
-		while ( times <= 8)
+		String head_line = "count_minhop\tcount_naive\ttime_minhop\ttime_naive\t";
+		head_line += "time_minhop_ser\ttime_naive_ser\ttotal_time_minhop\ttotal_time_naive\t";
+		head_line += "access_minhop\taccess_naive\n";
+		OwnMethods.WriteFile(result_avg_path, true, "selectivity\t" + head_line);
+		
+		double selectivity = 0.000001;
+		int times = 10;
+		while ( selectivity <= 1)
 		{
-			double selectivity = base_selectivity * times;
-			String queryrect_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/%s/queryrect_%d.txt", dataset, times);
+			String queryrect_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/%s/queryrect_%s.txt", dataset, String.valueOf(selectivity));
 			
-			String write_line = selectivity + "\ncount_minhop\tcount_naive\ttime_minhop\ttime_naive\t";
-			write_line += "time_minhop_ser\ttime_naive_ser\ttotal_time_minhop\ttotal_time_naive\t";
-			write_line += "access_minhop\taccess_naive\n";
-			OwnMethods.WriteFile(result_path, true, write_line);
+			String write_line = selectivity + "\n" + head_line;
+			OwnMethods.WriteFile(result_detail_path, true, write_line);
 			
 			ArrayList<MyRectangle> queryrect = OwnMethods.ReadQueryRectangle(queryrect_path);
 			Minhop_Match minhop_Match = new Minhop_Match(db_path);
@@ -532,6 +622,8 @@ public class Experiment {
 			{
 				MyRectangle rectangle = queryrect.get(i);
 				query_Graph.spa_predicate[1] = rectangle;
+				OwnMethods.Print(String.format("%d : %s", i, rectangle.toString()));
+				
 				start = System.currentTimeMillis();
 				Result result = minhop_Match.SubgraphMatch_Spa_API(query_Graph, limit);
 				time = System.currentTimeMillis() - start;
@@ -557,6 +649,7 @@ public class Experiment {
 				MyRectangle rectangle = queryrect.get(i);
 				OwnMethods.Print(String.format("%d : %s", i, rectangle.toString()));
 				query_Graph.spa_predicate[1] = rectangle;
+				
 				start = System.currentTimeMillis();
 				Result result = naive_Neo4j_Match.SubgraphMatch_Spa_API(query_Graph, limit);
 				time = System.currentTimeMillis() - start;
@@ -580,17 +673,21 @@ public class Experiment {
 				write_line += String.format("%d\t%d\t", time_minhop_ser.get(i), time_naive_ser.get(i));
 				write_line += String.format("%d\t%d\t", time_minhop.get(i) + time_minhop_ser.get(i), time_naive.get(i) + time_naive_ser.get(i));
 				write_line += String.format("%d\t%d\n", access_minhop.get(i), access_naive.get(i));
-				
-				OwnMethods.WriteFile(result_path, true, write_line);
+				OwnMethods.WriteFile(result_detail_path, true, write_line + "\n");
 			}
-			OwnMethods.WriteFile(result_path, true, "\n");
+			write_line = String.valueOf(selectivity) + "\t";
+			write_line += String.format("%d\t%d\t%d\t%d\t", Utility.Average(count_minhop), Utility.Average(count_naive), Utility.Average(time_minhop), Utility.Average(time_naive));
+			write_line += String.format("%d\t%d\t", Utility.Average(time_minhop_ser), Utility.Average(time_naive_ser));
+			write_line += String.format("%d\t%d\t", Utility.Average(time_minhop) + Utility.Average(time_minhop_ser), Utility.Average(time_naive) + Utility.Average(time_naive_ser));
+			write_line += String.format("%d\t%d\n", Utility.Average(access_minhop), Utility.Average(access_naive));
+			OwnMethods.WriteFile(result_avg_path, true, write_line);
 			
 			time_minhop.clear();	time_naive.clear();
 			time_minhop_ser.clear();time_naive_ser.clear();
 			count_minhop.clear();	count_naive.clear();
 			access_minhop.clear();	access_naive.clear();
 			
-			times *= 2;
+			selectivity *= times;
 		}
 	}
 
