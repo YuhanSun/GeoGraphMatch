@@ -425,6 +425,9 @@ public class Minhop_Match {
 		for(i = 1; i<query_Graph.graph.size(); i++)
 			query += String.format(",id(a%d)", i);
 		
+		if(limit != -1)
+			query += String.format(" limit %d", limit);
+		
 		return query;
 	}
 }

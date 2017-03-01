@@ -165,7 +165,7 @@ public class Naive_Neo4j_Match {
      */
     public JsonArray SubgraphMatch_Spa(Query_Graph query_Graph, int limit)//use neo4j query
 	{
-		String query = FormCypherQuery(query_Graph);
+		String query = FormCypherQuery(query_Graph, limit);
 		OwnMethods.Print(query);
 		String result = p_neo.Execute(query);
 //		OwnMethods.Print(result);
@@ -177,7 +177,7 @@ public class Naive_Neo4j_Match {
     
     public Result SubgraphMatch_Spa_API(Query_Graph query_Graph, int limit)//use neo4j query
 	{
-		String query = FormCypherQuery(query_Graph);
+		String query = FormCypherQuery(query_Graph, limit);
 		OwnMethods.Print(query);
 		
 		Result result = neo4j_API.graphDb.execute(query);
@@ -234,7 +234,7 @@ public class Naive_Neo4j_Match {
 		OwnMethods.Print(result);
 	}
     
-	public String FormCypherQuery(Query_Graph query_Graph)
+	public String FormCypherQuery(Query_Graph query_Graph, int limit)
 	{
 		String query = "profile match ";
 		
@@ -279,6 +279,9 @@ public class Naive_Neo4j_Match {
 		query += " return id(a0)";
 		for(i = 1; i<query_Graph.graph.size(); i++)
 			query += String.format(",id(a%d)", i);
+		
+		if(limit != -1)
+			query += String.format(" limit %d", limit);
 		
 		return query;
 	}
