@@ -12,6 +12,8 @@ public class Utility {
 	
 	public static long Average(ArrayList<Long> arraylist)
 	{
+		if ( arraylist .size() == 0)
+			return -1;
 		long sum = 0;
 		for ( long element : arraylist)
 			sum += element;
