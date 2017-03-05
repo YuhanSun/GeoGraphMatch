@@ -3,7 +3,9 @@ package org.datasyslab.GeoGraphMatch;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -180,13 +182,12 @@ public class Utility {
 					int degree = Integer.parseInt(line_list[2]);
 					
 					query_Graph.label_list[i] = node_label;
-					ArrayList<Integer> neighbors = new ArrayList<Integer>(degree);
+					ArrayList<Integer> neighbors = query_Graph.graph.get(i);
 					for(int j = 0; j<degree; j++)
 					{
 						int neighbor_id = Integer.parseInt(line_list[j+3]);
 						neighbors.add(neighbor_id);
 					}
-					query_Graph.graph.add(neighbors);
 				}
 				query_Graphs.add(query_Graph);
 			}
@@ -197,6 +198,100 @@ public class Utility {
 			e.printStackTrace();
 		}
 		return query_Graphs;
+	}
+	
+	/**
+	 * Read query graph with spatial predicate indicator
+	 * @param querygraph_path
+	 * @param read_count
+	 */
+	public static ArrayList<Query_Graph> ReadQueryGraph_Spa(String querygraph_path, int read_count)
+	{
+		ArrayList<Query_Graph> query_Graphs = new ArrayList<Query_Graph>();
+		BufferedReader reader = null;
+		String line = null;
+		try 
+		{
+			reader = new BufferedReader(new FileReader(new File(querygraph_path)));
+			for(int current_read_count = 0; current_read_count < read_count; current_read_count++)
+			{
+				line = reader.readLine();
+				String [] line_list = line.split(" ");
+				if(line_list.length != 4)
+					throw new Exception("query graph first line parameters number mismatch!");
+				if(line_list[0].equals("t") == false)
+					throw new Exception("query graph first line does begin with 't'!");
+				int node_count = Integer.parseInt(line_list[2]);
+				int edge_count = Integer.parseInt(line_list[3]);
+				Query_Graph query_Graph = new Query_Graph(node_count);
+				for(int i = 0; i<node_count; i++)
+				{
+					line = reader.readLine();
+					line_list = line.split(" ");
+					int node_id = Integer.parseInt(line_list[0]);
+					if(node_id != i)
+						throw new Exception(String .format("node_id not consistent with line index at %d", i));
+					
+					int node_label = Integer.parseInt(line_list[1]);
+					int degree = Integer.parseInt(line_list[2]);
+					
+					query_Graph.label_list[i] = node_label;
+					ArrayList<Integer> neighbors = query_Graph.graph.get(i);
+					for(int j = 0; j<degree; j++)
+					{
+						int neighbor_id = Integer.parseInt(line_list[j+3]);
+						neighbors.add(neighbor_id);
+					}
+					query_Graph.Has_Spa_Predicate[i] = Boolean.valueOf(line_list[line_list.length-1]);
+				}
+				query_Graphs.add(query_Graph);
+			}
+			reader.close();
+		}
+		catch (Exception e) {
+			OwnMethods.Print(line);
+			e.printStackTrace();
+		}
+		return query_Graphs;
+	}
+	
+	/**
+	 * Write generated query graphs to file
+	 * @param querygraph_path
+	 * @param query_Graphs
+	 */
+	public static void WriteQueryGraph(String querygraph_path, ArrayList<Query_Graph> query_Graphs)
+	{
+		FileWriter fileWriter = null;
+		String line = "";
+		
+		try {
+			fileWriter = new FileWriter(new File(querygraph_path));
+			
+			for ( int i = 0; i < query_Graphs.size(); i++)
+			{
+				Query_Graph query_Graph = query_Graphs.get(i);
+				int edge_count = 0;
+				for ( ArrayList<Integer> neighbors : query_Graph.graph)
+					edge_count += neighbors.size();
+				line = String.format("t %d %d %d\n", i, query_Graph.graph.size(), edge_count);
+				fileWriter.write(line);
+				
+				for ( int j = 0; j < query_Graph.graph.size(); j++)
+				{
+					ArrayList<Integer> neighbors = query_Graph.graph.get(j);
+					line = String.format("%d %d %d", j, query_Graph.label_list[j], neighbors.size());
+					for ( int neighbor : neighbors)
+						line += String.format(" %d", neighbor);
+					line += " " + String.valueOf(query_Graph.Has_Spa_Predicate[j]) + "\n";
+					fileWriter.write(line);
+				}
+			}
+			fileWriter.close();
+		} catch (Exception e) {
+			OwnMethods.Print(line);
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -248,13 +343,12 @@ public class Utility {
 					int degree = Integer.parseInt(line_list[2]);
 					
 					query_Graph.label_list[i] = transfer_label;
-					ArrayList<Integer> neighbors = new ArrayList<Integer>(degree);
+					ArrayList<Integer> neighbors  = query_Graph.graph.get(i);
 					for(int j = 0; j<degree; j++)
 					{
 						int neighbor_id = Integer.parseInt(line_list[j+3]);
 						neighbors.add(neighbor_id);
 					}
-					query_Graph.graph.add(neighbors);
 				}
 				query_Graphs.add(query_Graph);
 			}
@@ -314,13 +408,12 @@ public class Utility {
 					int degree = Integer.parseInt(line_list[2]);
 					
 					query_Graph.label_list[i] = transfer_label;
-					ArrayList<Integer> neighbors = new ArrayList<Integer>(degree);
+					ArrayList<Integer> neighbors = query_Graph.graph.get(i);
 					for(int j = 0; j<degree; j++)
 					{
 						int neighbor_id = Integer.parseInt(line_list[j+3]);
 						neighbors.add(neighbor_id);
 					}
-					query_Graph.graph.add(neighbors);
 				}
 				query_Graphs.add(query_Graph);
 			}
