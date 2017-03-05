@@ -6,6 +6,8 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.index.strtree.STRtree;
 
+import scala.languageFeature.postfixOps;
+
 import java.io.BufferedReader;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
@@ -18,17 +20,25 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.lang.reflect.Array;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
+import java.util.Set;
 
+import javax.swing.tree.DefaultMutableTreeNode;
+
+import org.neo4j.cypher.internal.compiler.v2_2.ast.rewriters.conjunctionPredicates;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
@@ -38,10 +48,221 @@ import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
 public class OwnMethods {
 	
+	
+	public static DefaultMutableTreeNode GetExecutionPlanTree(ExecutionPlanDescription plan, int node_count)
+	{
+		try 
+		{
+			DefaultMutableTreeNode root = null;
+			String plan_name = plan.getName();
+			while(plan_name.equals("NodeByLabelScan") == false && plan_name.equals("Expand(All)") == false
+					&& plan_name.equals("NodeHashJoin") == false)
+			{
+				int child_count = plan.getChildren().size();
+				if (child_count != 1)
+					throw new Exception(String.format("%s\n has more than one child", plan.toString()));
+				plan = plan.getChildren().get(0);
+				plan_name = plan.getName();
+			}
+			if(plan_name.equals("NodeHashJoin"))
+				root = new DefaultMutableTreeNode(node_count);
+			else
+			{
+				if(plan_name.equals("NodeByLabelScan"))
+				{
+					Set<String> identifiers = plan.getIdentifiers();
+					if(identifiers.size() != 1)
+						throw new Exception(String.format("%s\n has more than one identifier", plan.toString()));
+					Iterator<String> iterator = identifiers.iterator();
+					String identify = iterator.next();
+					int id = Integer.parseInt(identify.substring(1));
+					root = new DefaultMutableTreeNode(id);
+				}
+				else	//expand(all) case
+				{
+					Map<String, Object> arguments = plan.getArguments();
+					if(arguments.containsKey("ExpandExpression") == false)
+						throw new Exception(plan.toString() + "has no ExpandExpression");
+					String expression = arguments.get("ExpandExpression").toString();
+					expression = expression.split("--")[1];
+					int id = Integer.parseInt(expression.substring(2, expression.length()-1)); 
+					root = new DefaultMutableTreeNode(id);
+				}
+			}
+			
+			Search(root, plan, node_count);
+			return root;
+		} 
+		catch (Exception e) 
+		{
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+		OwnMethods.Print("GetExecutionPlanTree return null!");
+		return null;
+	}
+	
+	public static void Search(DefaultMutableTreeNode root, ExecutionPlanDescription plan, int node_count)
+	{
+		try {
+			for ( ExecutionPlanDescription child_plan : plan.getChildren())
+			{
+				String plan_name = child_plan.getName();
+				while(plan_name.equals("NodeByLabelScan") == false && plan_name.equals("Expand(All)") == false
+						&& plan_name.equals("NodeHashJoin") == false)
+				{
+					int child_count = child_plan.getChildren().size();
+					if (child_count != 1)
+						throw new Exception(String.format("%s\n has more than one child", plan.toString()));
+					child_plan = child_plan.getChildren().get(0);
+					plan_name = child_plan.getName();
+				}
+				DefaultMutableTreeNode child_node = null;
+				if(plan_name.equals("NodeHashJoin"))
+					child_node = new DefaultMutableTreeNode(node_count);
+				else
+				{
+					if(plan_name.equals("NodeByLabelScan"))
+					{
+						Set<String> identifiers = child_plan.getIdentifiers();
+						if(identifiers.size() != 1)
+						{
+							OwnMethods.Print(plan.toString());
+							throw new Exception(String.format("%s\n has more than one identifier", child_plan.toString()));
+						}
+						Iterator<String> iterator = identifiers.iterator();
+						String identify = iterator.next();
+						int id = Integer.parseInt(identify.substring(1));
+						child_node = new DefaultMutableTreeNode(id);
+					}
+					else	//expand(all) case
+					{
+						Map<String, Object> arguments = child_plan.getArguments();
+						if(arguments.containsKey("ExpandExpression") == false)
+						{
+							OwnMethods.Print(plan.toString());
+							throw new Exception(child_plan.toString() + "has no ExpandExpression");
+						}
+						String expression = arguments.get("ExpandExpression").toString();
+						expression = expression.split("--")[1];
+						int id = Integer.parseInt(expression.substring(2, expression.length()-1)); 
+						child_node = new DefaultMutableTreeNode(id);
+					}
+				}
+				root.add(child_node);
+				
+				Search(child_node, child_plan, node_count);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Generate random query graph from a data graph
+	 * @param graph	the data graph
+	 * @param labels	labels for the data graph
+	 * @param entities
+	 * @param node_count	size of the generated graph
+	 * @param spa_pred_count	number of spatial predicates
+	 * @return
+	 */
+	public static Query_Graph GenerateRandomGraph(ArrayList<ArrayList<Integer>> graph,
+			ArrayList<Integer> labels, ArrayList<Entity> entities, int node_count, int spa_pred_count)
+	{
+		try 
+		{
+			ArrayList<ArrayList<Integer>> subgraph = new ArrayList<ArrayList<Integer>>(node_count);
+			for ( int i = 0; i < node_count; i++)
+				subgraph.add(new ArrayList<Integer>());
+			ArrayList<Integer> subgraph_ids = new ArrayList<Integer>(node_count);
+			
+			int graph_size = graph.size();
+			Random random = new Random();
+			int first_node = (int) (random.nextDouble() * graph_size);
+			subgraph_ids.add(first_node);
+			
+			while (subgraph_ids.size() < node_count)
+			{
+				int start_index = random.nextInt(subgraph_ids.size());	// pos in the subgraph_ids
+				int start_id = subgraph_ids.get(start_index);
+				ArrayList<Integer> neighbors = graph.get(start_id);
+				int end_index_neighbor = random.nextInt(neighbors.size());	// pos in the neighbors array
+				int end_id = neighbors.get(end_index_neighbor);
+				int end_index = subgraph_ids.indexOf(end_id);	//pos in the subgraph_ids array
+				if(end_index == -1)
+				{
+					subgraph_ids.add(end_id);
+					end_index = subgraph_ids.size() - 1;
+				}
+				if ( subgraph.get(start_index).contains(end_id) == false)
+				{
+					subgraph.get(start_index).add(end_id);
+					subgraph.get(end_index).add(start_id);
+				}
+			}
+			Query_Graph query_Graph = new Query_Graph(node_count);
+			
+			int spa_node_count = 0;
+			ArrayList<Integer> spa_indices = new ArrayList<Integer>();
+			for ( int i = 0; i < subgraph_ids.size(); i++)
+			{
+				int id = subgraph_ids.get(i);
+				if(entities.get(id).IsSpatial)
+				{
+					spa_indices.add(i);
+					spa_node_count++;
+				}
+			}
+				
+			if(spa_node_count < spa_pred_count)
+				return GenerateRandomGraph(graph, labels, entities, node_count, spa_pred_count);
+			else
+			{
+				spa_indices = GetRandom_NoDuplicate(spa_indices, spa_pred_count);
+				for (int index : spa_indices)
+					query_Graph.Has_Spa_Predicate[index] = true;
+				
+				for ( int i = 0; i < node_count; i++)
+				{
+					int id = subgraph_ids.get(i);
+					query_Graph.label_list[i] = labels.get(id);
+					ArrayList<Integer> neighbors = subgraph.get(i);
+					for ( int neighbor : neighbors)
+					{
+						int neighbor_index = subgraph_ids.indexOf(neighbor);
+						if(neighbor_index == -1)
+						{
+							OwnMethods.Print(neighbor + " in "+ neighbors +" does not exist");
+							throw new Exception("neighbors does not exist in subgraph_ids");
+						}
+						else
+						{
+							if(i < neighbor_index)
+							{
+								query_Graph.graph.get(i).add(neighbor_index);
+								query_Graph.graph.get(neighbor_index).add(i);
+							}
+						}
+					}
+				}
+			}
+			for ( ArrayList<Integer> neighbors : query_Graph.graph)
+				Collections.sort(neighbors);
+			
+			return query_Graph;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		OwnMethods.Print("GenerateRandomGraph return null");
+		return null;
+	}
+	
 	public static ArrayList<Integer> GetRandom_NoDuplicate(ArrayList<Integer> wholeset, int count)
 	{
 		ArrayList<Integer> result = new ArrayList<Integer>(count);
-		HashSet<Integer> hashSet = new HashSet<>();
+		HashSet<Integer> hashSet = new HashSet<Integer>();
 		Random random = new Random();
 		while ( hashSet.size() < count)
 		{
@@ -57,7 +278,7 @@ public class OwnMethods {
 	
 	public static ArrayList<Integer> ReadCenterID(String path)
 	{
-		ArrayList<Integer> ids = new ArrayList<>();
+		ArrayList<Integer> ids = new ArrayList<Integer>();
 		BufferedReader reader = null;
 		String line = null;
 		try {
@@ -686,7 +907,7 @@ public class OwnMethods {
     public static long GetTotalDBHits(ExecutionPlanDescription plan)
     {
     	long dbhits = 0;
-    	Queue<ExecutionPlanDescription> queue = new LinkedList<>();
+    	Queue<ExecutionPlanDescription> queue = new LinkedList<ExecutionPlanDescription>();
     	if(plan.hasProfilerStatistics())
     		queue.add(plan);
     	while(queue.isEmpty() == false)
