@@ -1,26 +1,16 @@
 package org.datasyslab.GeoGraphMatch;
 
-import java.awt.List;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.Map;
 
+import javax.management.Query;
 import javax.rmi.CORBA.Util;
 
-import org.neo4j.cypher.internal.compiler.v2_2.planner.QueryGraph;
-import org.neo4j.cypher.javacompat.ProfilerStatistics;
+import org.neo4j.cypher.internal.compiler.v2_2.perty.recipe.Pretty.nest;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.Result;
-import org.w3c.dom.css.Rect;
-
 import com.google.gson.JsonArray;
-import com.vividsolutions.jts.index.ItemVisitor;
 import com.vividsolutions.jts.index.strtree.GeometryItemDistance;
 import com.vividsolutions.jts.index.strtree.STRtree;
-
-import scala.languageFeature.postfixOps;
 
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
@@ -44,6 +34,7 @@ public class Experiment {
 //	}
 	
 	private static String dataset = "Gowalla";
+	private static boolean TEST_FORMAT = false;
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
@@ -55,8 +46,52 @@ public class Experiment {
 //		GenerateQueryRectangle();
 //		GetRealSelectivity();
 		
-		Query_Hot_API(1);
-		Query_Hot_API(3);
+//		Query_Hot_API(0);
+//		Query_Hot_API(3);
+//		Query_Hot_API(2);
+//		Query_Hot_API(4);
+//		Query_Hot_API(5);
+		Query_Hot_API(6);
+//		Query_Hot_API(7);
+//		Query_Hot_API(8);
+//		Query_Hot_API(9);
+//		Query_Hot_API(10);
+		
+		
+		
+//		GenerateRandomQueryGraph();
+		
+	}
+	
+	public static void GenerateRandomQueryGraph()
+	{
+		int node_count = 4;
+		int spa_pred_count = 1;
+		String datagraph_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/%s/graph.txt", dataset);
+		ArrayList<ArrayList<Integer>> datagraph = OwnMethods.ReadGraph(datagraph_path);
+		
+		String entity_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/%s/entity.txt", dataset);
+		ArrayList<Entity> entities = OwnMethods.ReadEntity(entity_path);
+		
+		ArrayList<Integer> labels = new ArrayList<Integer>(entities.size());
+		for ( int i = 0; i < entities.size(); i++)
+		{
+			if(entities.get(i).IsSpatial)
+				labels.add(1);
+			else
+				labels.add(0);
+		}
+		
+		ArrayList<Query_Graph> query_Graphs = new ArrayList<Query_Graph>(10);
+		for ( int i = 0; i < 10; i++)
+		{
+			Query_Graph query_Graph = OwnMethods.GenerateRandomGraph(datagraph, labels, 
+				entities, node_count, spa_pred_count);
+			OwnMethods.Print(query_Graph.toString() + "\n");
+			query_Graphs.add(query_Graph);
+		}
+		String querygraph_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/query_graph/%d.txt", node_count);
+		Utility.WriteQueryGraph(querygraph_path, query_Graphs);
 		
 	}
 	
@@ -244,10 +279,10 @@ public class Experiment {
 		Query_Graph query_Graph = queryGraphs.get(0);
 		
 		String result_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/result_1.txt");
-		ArrayList<Long> time_minhop = new ArrayList<>();
-		ArrayList<Long> time_naive = new ArrayList<>();
-		ArrayList<Integer> count_minhop = new ArrayList<>();
-		ArrayList<Integer> count_naive = new ArrayList<>();
+		ArrayList<Long> time_minhop = new ArrayList<Long>();
+		ArrayList<Long> time_naive = new ArrayList<Long>();
+		ArrayList<Integer> count_minhop = new ArrayList<Integer>();
+		ArrayList<Integer> count_naive = new ArrayList<Integer>();
 		
 		OwnMethods.WriteFile(result_path, true, dataset + "\n");
 		
@@ -315,14 +350,14 @@ public class Experiment {
 		Query_Graph query_Graph = queryGraphs.get(0);
 		
 		String result_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/result_1_API.txt");
-		ArrayList<Long> time_minhop = new ArrayList<>();
-		ArrayList<Long> time_naive = new ArrayList<>();
-		ArrayList<Long> time_minhop_ser = new ArrayList<>();
-		ArrayList<Long> time_naive_ser = new ArrayList<>();
-		ArrayList<Long> count_minhop = new ArrayList<>();
-		ArrayList<Long> count_naive = new ArrayList<>();
-		ArrayList<Long> access_minhop = new ArrayList<>();
-		ArrayList<Long> access_naive = new ArrayList<>();
+		ArrayList<Long> time_minhop = new ArrayList<Long>();
+		ArrayList<Long> time_naive = new ArrayList<Long>();
+		ArrayList<Long> time_minhop_ser = new ArrayList<Long>();
+		ArrayList<Long> time_naive_ser = new ArrayList<Long>();
+		ArrayList<Long> count_minhop = new ArrayList<Long>();
+		ArrayList<Long> count_naive = new ArrayList<Long>();
+		ArrayList<Long> access_minhop = new ArrayList<Long>();
+		ArrayList<Long> access_naive = new ArrayList<Long>();
 		
 		OwnMethods.WriteFile(result_path, true, dataset + "\n");
 		
@@ -415,10 +450,10 @@ public class Experiment {
 		Query_Graph query_Graph = queryGraphs.get(2);
 		
 		String result_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/result_3.txt");
-		ArrayList<Long> time_minhop = new ArrayList<>();
-		ArrayList<Long> time_naive = new ArrayList<>();
-		ArrayList<Integer> count_minhop = new ArrayList<>();
-		ArrayList<Integer> count_naive = new ArrayList<>();
+		ArrayList<Long> time_minhop = new ArrayList<Long>();
+		ArrayList<Long> time_naive = new ArrayList<Long>();
+		ArrayList<Integer> count_minhop = new ArrayList<Integer>();
+		ArrayList<Integer> count_naive = new ArrayList<Integer>();
 		
 		OwnMethods.WriteFile(result_path, true, dataset + "\n");
 		
@@ -486,14 +521,14 @@ public class Experiment {
 		Query_Graph query_Graph = queryGraphs.get(2);
 		
 		String result_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/result_3_API.txt");
-		ArrayList<Long> time_minhop = new ArrayList<>();
-		ArrayList<Long> time_naive = new ArrayList<>();
-		ArrayList<Long> time_minhop_ser = new ArrayList<>();
-		ArrayList<Long> time_naive_ser = new ArrayList<>();
-		ArrayList<Long> count_minhop = new ArrayList<>();
-		ArrayList<Long> count_naive = new ArrayList<>();
-		ArrayList<Long> access_minhop = new ArrayList<>();
-		ArrayList<Long> access_naive = new ArrayList<>();
+		ArrayList<Long> time_minhop = new ArrayList<Long>();
+		ArrayList<Long> time_naive = new ArrayList<Long>();
+		ArrayList<Long> time_minhop_ser = new ArrayList<Long>();
+		ArrayList<Long> time_naive_ser = new ArrayList<Long>();
+		ArrayList<Long> count_minhop = new ArrayList<Long>();
+		ArrayList<Long> count_naive = new ArrayList<Long>();
+		ArrayList<Long> access_minhop = new ArrayList<Long>();
+		ArrayList<Long> access_naive = new ArrayList<Long>();
 		
 		OwnMethods.WriteFile(result_path, true, dataset + "\n");
 		
@@ -575,71 +610,94 @@ public class Experiment {
 		}
 	}
 	
+	public static void Query_Hot_API_Equal(int node_count)
+	{
+		
+	}
+	
 	public static void Query_Hot_API(int query_id)
 	{
 		long start;
 		long time;
-		int limit = 1000;
-		int expe_count = 50;
+		int limit = -1;
+		int expe_count = 15;
 		
-		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_Gowalla/data/graph.db";
+		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_"+ dataset +"/data/graph.db";
 		
 		String querygraph_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/query_graph.txt";
-		ArrayList<Query_Graph> queryGraphs = Utility.ReadQueryGraphs(querygraph_path, 4);
-		Query_Graph query_Graph = queryGraphs.get(query_id - 1);
+		ArrayList<Query_Graph> queryGraphs = Utility.ReadQueryGraph_Spa(querygraph_path, query_id + 1);
+		Query_Graph query_Graph = queryGraphs.get(query_id);
 		
-		String result_detail_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/result_%d_API.txt", query_id);
-		String result_avg_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/result_%d_API_avg.txt", query_id);
-		ArrayList<Long> time_minhop = new ArrayList<>();
-		ArrayList<Long> time_naive = new ArrayList<>();
-		ArrayList<Long> time_minhop_ser = new ArrayList<>();
-		ArrayList<Long> time_naive_ser = new ArrayList<>();
-		ArrayList<Long> count_minhop = new ArrayList<>();
-		ArrayList<Long> count_naive = new ArrayList<>();
-		ArrayList<Long> access_minhop = new ArrayList<>();
-		ArrayList<Long> access_naive = new ArrayList<>();
+		String result_detail_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/%s/result_%d_API.txt", dataset, query_id);
+		String result_avg_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/experiment_result/%s/result_%d_API_avg.txt", dataset, query_id);
+		ArrayList<Long> time_minhop = new ArrayList<Long>();
+		ArrayList<Long> time_naive = new ArrayList<Long>();
+		ArrayList<Long> time_minhop_ser = new ArrayList<Long>();
+		ArrayList<Long> time_naive_ser = new ArrayList<Long>();
+		ArrayList<Long> count_minhop = new ArrayList<Long>();
+		ArrayList<Long> count_naive = new ArrayList<Long>();
+		ArrayList<Long> access_minhop = new ArrayList<Long>();
+		ArrayList<Long> access_naive = new ArrayList<Long>();
 		
-		OwnMethods.WriteFile(result_detail_path, true, String.format("%s\t%d\n", dataset, limit));
-		OwnMethods.WriteFile(result_avg_path, true, String.format("%s\t%d\n", dataset, limit));
+		String write_line = String.format("%s\t%d\n", dataset, limit);
+		if(!TEST_FORMAT)
+		{
+			OwnMethods.WriteFile(result_detail_path, true, write_line);
+			OwnMethods.WriteFile(result_avg_path, true, write_line);
+		}
 		
 		String head_line = "count_minhop\tcount_naive\ttime_minhop\ttime_naive\t";
 		head_line += "time_minhop_ser\ttime_naive_ser\ttotal_time_minhop\ttotal_time_naive\t";
 		head_line += "access_minhop\taccess_naive\n";
-		OwnMethods.WriteFile(result_avg_path, true, "selectivity\t" + head_line);
+		if(!TEST_FORMAT)
+			OwnMethods.WriteFile(result_avg_path, true, "selectivity\t" + head_line);
 		
 		double selectivity = 0.000001;
 		int times = 10;
-		while ( selectivity <= 1)
+		while ( selectivity <= 0.2)
 		{
 			String queryrect_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/%s/queryrect_%s.txt", dataset, String.valueOf(selectivity));
 			
-			String write_line = selectivity + "\n" + head_line;
-			OwnMethods.WriteFile(result_detail_path, true, write_line);
+			write_line = selectivity + "\n" + head_line;
+			if(!TEST_FORMAT)
+				OwnMethods.WriteFile(result_detail_path, true, write_line);
 			
 			ArrayList<MyRectangle> queryrect = OwnMethods.ReadQueryRectangle(queryrect_path);
 			Minhop_Match minhop_Match = new Minhop_Match(db_path);
 			for ( int i = 0; i < expe_count; i++)
 			{
 				MyRectangle rectangle = queryrect.get(i);
-				query_Graph.spa_predicate[1] = rectangle;
-				OwnMethods.Print(String.format("%d : %s", i, rectangle.toString()));
+				query_Graph.spa_predicate = new MyRectangle[query_Graph.graph.size()];
 				
-				start = System.currentTimeMillis();
-				Result result = minhop_Match.SubgraphMatch_Spa_API(query_Graph, limit);
-				time = System.currentTimeMillis() - start;
+				int j = 0;
+				for (  ; j < query_Graph.graph.size(); j++)
+					if(query_Graph.Has_Spa_Predicate[j])
+						break;
+				query_Graph.spa_predicate[j] = rectangle;
 				
-				start = System.currentTimeMillis();
-				while ( result.hasNext())
+				if(!TEST_FORMAT)
 				{
-					result.next();
+					OwnMethods.Print(String.format("%d : %s", i, rectangle.toString()));
+
+					start = System.currentTimeMillis();
+					Result result = minhop_Match.SubgraphMatch_Spa_API(query_Graph, limit);
+					time = System.currentTimeMillis() - start;
+					time_minhop.add(time);	OwnMethods.Print("get itorator time: "+time);
+
+
+					start = System.currentTimeMillis();
+					while ( result.hasNext())
+					{
+						result.next();
+					}
+					time = System.currentTimeMillis() - start;
+					time_minhop_ser.add(time);	OwnMethods.Print("Iterate time: "+time);
+
+					ExecutionPlanDescription planDescription = result.getExecutionPlanDescription();
+					ExecutionPlanDescription.ProfilerStatistics profilerStatistics = planDescription.getProfilerStatistics();
+					count_minhop.add(profilerStatistics.getRows());
+					access_minhop.add(OwnMethods.GetTotalDBHits(planDescription));
 				}
-				time_minhop_ser.add(System.currentTimeMillis() - start);
-				
-				ExecutionPlanDescription planDescription = result.getExecutionPlanDescription();
-				ExecutionPlanDescription.ProfilerStatistics profilerStatistics = planDescription.getProfilerStatistics();
-				time_minhop.add(time);
-				count_minhop.add(profilerStatistics.getRows());
-				access_minhop.add(OwnMethods.GetTotalDBHits(planDescription));
 			}
 			minhop_Match.neo4j_API.ShutDown();
 			
@@ -647,23 +705,34 @@ public class Experiment {
 			for ( int i = 0; i < expe_count; i++)
 			{
 				MyRectangle rectangle = queryrect.get(i);
-				OwnMethods.Print(String.format("%d : %s", i, rectangle.toString()));
-				query_Graph.spa_predicate[1] = rectangle;
-				
-				start = System.currentTimeMillis();
-				Result result = naive_Neo4j_Match.SubgraphMatch_Spa_API(query_Graph, limit);
-				time = System.currentTimeMillis() - start;
-				
-				start = System.currentTimeMillis();
-				while ( result.hasNext())
-					result.next();
-				time_naive_ser.add(System.currentTimeMillis() - start);
-				
-				ExecutionPlanDescription planDescription = result.getExecutionPlanDescription();
-				ExecutionPlanDescription.ProfilerStatistics profilerStatistics = planDescription.getProfilerStatistics();
-				time_naive.add(time);
-				count_naive.add(profilerStatistics.getRows());
-				access_naive.add(OwnMethods.GetTotalDBHits(planDescription));
+				query_Graph.spa_predicate = new MyRectangle[query_Graph.graph.size()];
+
+				int j = 0;
+				for (  ; j < query_Graph.graph.size(); j++)
+					if(query_Graph.Has_Spa_Predicate[j])
+						break;
+				query_Graph.spa_predicate[j] = rectangle;
+
+				if(!TEST_FORMAT)
+				{
+					OwnMethods.Print(String.format("%d : %s", i, rectangle.toString()));
+
+					start = System.currentTimeMillis();
+					Result result = naive_Neo4j_Match.SubgraphMatch_Spa_API(query_Graph, limit);
+					time = System.currentTimeMillis() - start;
+					time_naive.add(time);	OwnMethods.Print("get itorator time: "+time);
+
+					start = System.currentTimeMillis();
+					while ( result.hasNext())
+						result.next();
+					time = System.currentTimeMillis() - start;
+					time_naive_ser.add(time);	OwnMethods.Print("Iterate time: "+time);
+
+					ExecutionPlanDescription planDescription = result.getExecutionPlanDescription();
+					ExecutionPlanDescription.ProfilerStatistics profilerStatistics = planDescription.getProfilerStatistics();
+					count_naive.add(profilerStatistics.getRows());
+					access_naive.add(OwnMethods.GetTotalDBHits(planDescription));
+				}
 			}
 			naive_Neo4j_Match.neo4j_API.ShutDown();
 
@@ -673,14 +742,24 @@ public class Experiment {
 				write_line += String.format("%d\t%d\t", time_minhop_ser.get(i), time_naive_ser.get(i));
 				write_line += String.format("%d\t%d\t", time_minhop.get(i) + time_minhop_ser.get(i), time_naive.get(i) + time_naive_ser.get(i));
 				write_line += String.format("%d\t%d\n", access_minhop.get(i), access_naive.get(i));
-				OwnMethods.WriteFile(result_detail_path, true, write_line + "\n");
+				if(!TEST_FORMAT)
+					OwnMethods.WriteFile(result_detail_path, true, write_line);
 			}
 			write_line = String.valueOf(selectivity) + "\t";
 			write_line += String.format("%d\t%d\t%d\t%d\t", Utility.Average(count_minhop), Utility.Average(count_naive), Utility.Average(time_minhop), Utility.Average(time_naive));
 			write_line += String.format("%d\t%d\t", Utility.Average(time_minhop_ser), Utility.Average(time_naive_ser));
 			write_line += String.format("%d\t%d\t", Utility.Average(time_minhop) + Utility.Average(time_minhop_ser), Utility.Average(time_naive) + Utility.Average(time_naive_ser));
-			write_line += String.format("%d\t%d\n", Utility.Average(access_minhop), Utility.Average(access_naive));
-			OwnMethods.WriteFile(result_avg_path, true, write_line);
+			write_line += String.format("%d\t%d\t%d\n", Utility.Average(access_minhop), Utility.Average(access_naive), expe_count);
+			if(!TEST_FORMAT)
+				OwnMethods.WriteFile(result_avg_path, true, write_line);
+			
+			long minhop_avg = Utility.Average(time_minhop) + Utility.Average(time_minhop_ser);
+			long naive_avg = Utility.Average(time_naive) + Utility.Average(time_naive_ser);
+			long larger_time = (minhop_avg > naive_avg ? minhop_avg:naive_avg);
+			if (larger_time * expe_count > 450 * 1000)
+				expe_count = (int) (expe_count * 0.5 / (larger_time * expe_count / 450.0 / 1000.0));
+			if(expe_count < 1)
+				expe_count = 1;
 			
 			time_minhop.clear();	time_naive.clear();
 			time_minhop_ser.clear();time_naive_ser.clear();

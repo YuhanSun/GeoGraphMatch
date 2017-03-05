@@ -395,9 +395,11 @@ public class Data_Loader {
 		}
 	}
 	
+	/**
+	 * load graph with my format
+	 */
 	public static void LoadGraph()
 	{
-		String dataset = "Gowalla";
 		String graphfile_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/" + dataset + "/graph.txt";
 		String entity_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/" + dataset + "/entity.txt";
 		String hmbr_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/" + dataset + "/HMBR.txt";
@@ -405,6 +407,9 @@ public class Data_Loader {
 		LoadGraph(graphfile_path, entity_path, hmbr_path, db_path);
 	}
 
+	/**
+	 * load graph with cfl format
+	 */
 	public static void LoadGraphCFL()
 	{
 		String data_name = "hprd";
@@ -426,6 +431,8 @@ public class Data_Loader {
 		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_"+data_name+"/data/graph.db";
 		LoadQueryGraph(query_Graphs, db_path);
 	}
+	
+	static String dataset = "foursquare";
 	
 	public static void main(String[] args) {
 		LoadGraph();
