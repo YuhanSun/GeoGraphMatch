@@ -1,11 +1,15 @@
 package org.datasyslab.GeoGraphMatch;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import javax.management.Query;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 
 import org.neo4j.cypher.internal.compiler.v2_2.ast.rewriters.nameAllPatternElements;
 import org.neo4j.cypher.internal.compiler.v2_2.commands.indexQuery;
@@ -272,7 +276,7 @@ public class Minhop_Match {
 
 		int [][] minhop_index = Ini_Minhop(query_Graph);
 
-		String query = FormCypherQuery(query_Graph, limit, minhop_index);
+		String query = FormCypherQuery(query_Graph, limit, minhop_index, true);
 		
 		OwnMethods.Print(query);
 		String result = p_neo.Execute(query);
@@ -292,7 +296,7 @@ public class Minhop_Match {
 
 		int [][] minhop_index = Ini_Minhop(query_Graph);
 
-		String query = FormCypherQuery(query_Graph, limit, minhop_index);
+		String query = FormCypherQuery(query_Graph, limit, minhop_index, true);
 		
 		OwnMethods.Print(query);
 		Result result = neo4j_API.graphDb.execute(query);
@@ -319,7 +323,7 @@ public class Minhop_Match {
 			{
 				boolean[] visited = new boolean[query_node_count];
 				visited[i] = true;
-				minhop_index[i][i] = 0;
+				minhop_index[i][i] = -1;
 				
 				Queue<Integer> queue = new LinkedList<Integer>();
 				queue.add(i);
@@ -351,6 +355,7 @@ public class Minhop_Match {
 			}
 		}
 		
+		minhop_index[2][0] = -1;	minhop_index[2][3] = -1;
 		return minhop_index;
 	}
 
@@ -358,11 +363,17 @@ public class Minhop_Match {
 	 * form cypher query with minhop check
 	 * @param query_Graph
 	 * @param limit
+	 * @param minhop_index
+	 * @param Profile_Or_Explain	Profile --> true, Explain --> false
 	 * @return
 	 */
-	public String FormCypherQuery(Query_Graph query_Graph, int limit, int[][] minhop_index) 
+	public String FormCypherQuery(Query_Graph query_Graph, int limit, int[][] minhop_index, boolean Profile_Or_Explain) 
 	{
-		String query = "profile match ";
+		String query = "";
+		if(Profile_Or_Explain)
+			query += "profile match ";
+		else
+			query += "explain match ";
 		
 		//label
 		query += String.format("(a0:GRAPH_%d)", query_Graph.label_list[0]);
@@ -409,9 +420,9 @@ public class Minhop_Match {
 				MyRectangle cur_rect = query_Graph.spa_predicate[i];
 				for ( int j = 0; j < query_node_count; j++)
 				{
-					if ( i == j)
-						continue;
 					int minhop = minhop_index[i][j];
+					if ( minhop == -1)
+						continue;
 					query += String.format(" and a%d.HMBR_%d_%s < %f", j, minhop, minx_name, cur_rect.max_x);
 					query += String.format(" and a%d.HMBR_%d_%s < %f", j, minhop, miny_name, cur_rect.max_y);
 					query += String.format(" and a%d.HMBR_%d_%s > %f", j, minhop, maxx_name, cur_rect.min_x);
@@ -421,9 +432,9 @@ public class Minhop_Match {
 		}
 		
 		//return
-		query += " return id(a0)";
+		query += " return a0";
 		for(i = 1; i<query_Graph.graph.size(); i++)
-			query += String.format(",id(a%d)", i);
+			query += String.format(",a%d", i);
 		
 		if(limit != -1)
 			query += String.format(" limit %d", limit);

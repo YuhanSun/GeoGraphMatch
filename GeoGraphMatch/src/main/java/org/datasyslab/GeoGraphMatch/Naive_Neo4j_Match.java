@@ -159,13 +159,15 @@ public class Naive_Neo4j_Match {
 	}
     
     /**
-     * subgraph isomorphism with spatial predicate
+     * subgraph isomorphism with spatial predicate.
+     * It uses rest api, ensure that instance is constructed
+     * with no parameter, and the server should be connected.
      * @param query_Graph
      * @param limit
      */
     public JsonArray SubgraphMatch_Spa(Query_Graph query_Graph, int limit)//use neo4j query
 	{
-		String query = FormCypherQuery(query_Graph, limit);
+		String query = FormCypherQuery(query_Graph, limit, true);
 		OwnMethods.Print(query);
 		String result = p_neo.Execute(query);
 //		OwnMethods.Print(result);
@@ -175,9 +177,26 @@ public class Naive_Neo4j_Match {
 		return jsonArray;
 	}
     
+    /**
+     * subgraph isomorphism with spatial predicate.
+     * It uses java api, ensure that instance is constructed
+     * with db_path.
+     * @param query_Graph
+     * @param limit
+     * @return
+     */
     public Result SubgraphMatch_Spa_API(Query_Graph query_Graph, int limit)//use neo4j query
 	{
-		String query = FormCypherQuery(query_Graph, limit);
+		String query = FormCypherQuery(query_Graph, limit, true);
+		OwnMethods.Print(query);
+		
+		Result result = neo4j_API.graphDb.execute(query);
+		return result;
+	}
+    
+    public Result Explain_SubgraphMatch_Spa_API(Query_Graph query_Graph, int limit)//use neo4j query
+	{
+		String query = FormCypherQuery(query_Graph, limit, false);
 		OwnMethods.Print(query);
 		
 		Result result = neo4j_API.graphDb.execute(query);
@@ -234,9 +253,20 @@ public class Naive_Neo4j_Match {
 		OwnMethods.Print(result);
 	}
     
-	public String FormCypherQuery(Query_Graph query_Graph, int limit)
+    /**
+     * for the cypher query for profile or explain with given query graph
+     * @param query_Graph
+     * @param limit
+     * @param Profile_Or_Explain	set to true if profile, otherwise false
+     * @return
+     */
+	public String FormCypherQuery(Query_Graph query_Graph, int limit, boolean Profile_Or_Explain)
 	{
-		String query = "profile match ";
+		String query = "";
+		if(Profile_Or_Explain)
+			query += "profile match ";
+		else
+			query += "explain match ";
 		
 		//label
 		query += String.format("(a0:GRAPH_%d)", query_Graph.label_list[0]);
@@ -276,9 +306,9 @@ public class Naive_Neo4j_Match {
 			}
 		
 		//return
-		query += " return id(a0)";
+		query += " return a0";
 		for(i = 1; i<query_Graph.graph.size(); i++)
-			query += String.format(",id(a%d)", i);
+			query += String.format(",a%d", i);
 		
 		if(limit != -1)
 			query += String.format(" limit %d", limit);
