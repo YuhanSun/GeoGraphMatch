@@ -292,8 +292,8 @@ public class Naive_Neo4j_Match {
 			if(query_Graph.spa_predicate[i] != null)
 			{
 				MyRectangle qRect = query_Graph.spa_predicate[i];
-				query += String.format(" where %f < a%d.%s < %f ", qRect.min_x, i, lon_name, qRect.max_x);
-				query += String.format("and %f < a%d.%s < %f", qRect.min_y, i, lat_name, qRect.max_y);
+				query += String.format(" where %f <= a%d.%s <= %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f <= a%d.%s <= %f", qRect.min_y, i, lat_name, qRect.max_y);
 				i++;
 				break; 
 			}
@@ -301,8 +301,8 @@ public class Naive_Neo4j_Match {
 			if(query_Graph.spa_predicate[i] != null)
 			{
 				MyRectangle qRect = query_Graph.spa_predicate[i];
-				query += String.format(" and %f < a%d.%s < %f ", qRect.min_x, i, lon_name, qRect.max_x);
-				query += String.format("and %f < a%d.%s < %f", qRect.min_y, i, lat_name, qRect.max_y);
+				query += String.format(" and %f <= a%d.%s <= %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f <= a%d.%s <= %f", qRect.min_y, i, lat_name, qRect.max_y);
 			}
 		
 		//return
