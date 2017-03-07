@@ -43,10 +43,10 @@ public class Minhop_Match {
 	
 	public int query_node_count;
 	
-	public int[] neo4j_time;
-	public int[] hmbr_check_time;
-	public int[] spa_check_time;
-	public long start;
+//	public int[] neo4j_time;
+//	public int[] hmbr_check_time;
+//	public int[] spa_check_time;
+//	public long start;
 	
 	public Minhop_Match()
 	{
@@ -270,9 +270,9 @@ public class Minhop_Match {
 	public JsonArray SubgraphMatch_Spa(Query_Graph query_Graph, int limit)
 	{
 		query_node_count = query_Graph.graph.size();
-		neo4j_time = new int[query_node_count];
-		hmbr_check_time = new int[query_node_count];
-		spa_check_time = new int[query_node_count];
+//		neo4j_time = new int[query_node_count];
+//		hmbr_check_time = new int[query_node_count];
+//		spa_check_time = new int[query_node_count];
 
 		int [][] minhop_index = Ini_Minhop(query_Graph);
 
@@ -290,9 +290,9 @@ public class Minhop_Match {
 	public Result SubgraphMatch_Spa_API(Query_Graph query_Graph, int limit)
 	{
 		query_node_count = query_Graph.graph.size();
-		neo4j_time = new int[query_node_count];
-		hmbr_check_time = new int[query_node_count];
-		spa_check_time = new int[query_node_count];
+//		neo4j_time = new int[query_node_count];
+//		hmbr_check_time = new int[query_node_count];
+//		spa_check_time = new int[query_node_count];
 
 		int [][] minhop_index = Ini_Minhop(query_Graph);
 
@@ -355,7 +355,7 @@ public class Minhop_Match {
 			}
 		}
 		
-		minhop_index[2][0] = -1;	minhop_index[2][3] = -1;
+//		minhop_index[2][0] = -1;	minhop_index[2][3] = -1;
 		return minhop_index;
 	}
 
@@ -399,8 +399,8 @@ public class Minhop_Match {
 			if(query_Graph.spa_predicate[i] != null)
 			{
 				MyRectangle qRect = query_Graph.spa_predicate[i];
-				query += String.format(" where %f < a%d.%s < %f ", qRect.min_x, i, lon_name, qRect.max_x);
-				query += String.format("and %f < a%d.%s < %f", qRect.min_y, i, lat_name, qRect.max_y);
+				query += String.format(" where %f <= a%d.%s <= %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f <= a%d.%s <= %f", qRect.min_y, i, lat_name, qRect.max_y);
 				i++;
 				break; 
 			}
@@ -408,8 +408,8 @@ public class Minhop_Match {
 			if(query_Graph.spa_predicate[i] != null)
 			{
 				MyRectangle qRect = query_Graph.spa_predicate[i];
-				query += String.format(" and %f < a%d.%s < %f ", qRect.min_x, i, lon_name, qRect.max_x);
-				query += String.format("and %f < a%d.%s < %f", qRect.min_y, i, lat_name, qRect.max_y);
+				query += String.format(" and %f <= a%d.%s <= %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f <= a%d.%s <= %f", qRect.min_y, i, lat_name, qRect.max_y);
 			}
 		
 		//hmbr prune
@@ -423,10 +423,10 @@ public class Minhop_Match {
 					int minhop = minhop_index[i][j];
 					if ( minhop == -1)
 						continue;
-					query += String.format(" and a%d.HMBR_%d_%s < %f", j, minhop, minx_name, cur_rect.max_x);
-					query += String.format(" and a%d.HMBR_%d_%s < %f", j, minhop, miny_name, cur_rect.max_y);
-					query += String.format(" and a%d.HMBR_%d_%s > %f", j, minhop, maxx_name, cur_rect.min_x);
-					query += String.format(" and a%d.HMBR_%d_%s > %f", j, minhop, maxy_name, cur_rect.min_y);
+					query += String.format(" and a%d.HMBR_%d_%s <= %f", j, minhop, minx_name, cur_rect.max_x);
+					query += String.format(" and a%d.HMBR_%d_%s <= %f", j, minhop, miny_name, cur_rect.max_y);
+					query += String.format(" and a%d.HMBR_%d_%s >= %f", j, minhop, maxx_name, cur_rect.min_x);
+					query += String.format(" and a%d.HMBR_%d_%s >= %f", j, minhop, maxy_name, cur_rect.min_y);
 				}
 			}
 		}
