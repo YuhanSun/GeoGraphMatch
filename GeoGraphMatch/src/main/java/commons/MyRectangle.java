@@ -1,4 +1,4 @@
-package org.datasyslab.GeoGraphMatch;
+package commons;
 
 import org.neo4j.cypher.internal.compiler.v2_2.ast.rewriters.nameAllPatternElements;
 import org.neo4j.cypher.internal.compiler.v2_2.perty.recipe.DocRecipe.strategyExpander;

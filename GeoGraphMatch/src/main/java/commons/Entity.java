@@ -1,4 +1,4 @@
-package org.datasyslab.GeoGraphMatch;
+package commons;
 
 public class Entity {
     public boolean IsSpatial;

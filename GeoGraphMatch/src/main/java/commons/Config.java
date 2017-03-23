@@ -1,4 +1,4 @@
-package org.datasyslab.GeoGraphMatch;
+package commons;
 
 public class Config { public Config() {}
   private String SERVER_ROOT_URI = "http://localhost:7474/db/data";
