@@ -1,4 +1,4 @@
-package org.datasyslab.GeoGraphMatch;
+package commons;
 
 import com.sun.jersey.api.client.WebResource;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -38,6 +38,7 @@ import java.util.Set;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 
+import org.datasyslab.GeoGraphMatch.Neo4j_Graph_Store;
 import org.neo4j.cypher.internal.compiler.v2_2.ast.rewriters.conjunctionPredicates;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.Node;
@@ -703,6 +704,19 @@ public class OwnMethods {
         }
         return lines;
     }
+    
+    public static void WriteArray(String filename, ArrayList<Integer> arrayList)
+    {
+    	FileWriter fileWriter = null;
+    	try {
+			fileWriter = new FileWriter(new File(filename));
+			for (int id : arrayList)
+				fileWriter.write(id + "\n");
+			fileWriter.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+    }
 
     public static void WriteFile(String filename, boolean app, ArrayList<String> lines) {
         try {
@@ -795,9 +809,13 @@ public class OwnMethods {
         return node_count;
     }
 
+    /**
+     * get node count from a graph file
+     * @param filepath
+     * @return
+     */
     public static int GetNodeCountGeneral(String filepath) {
-        int node_count;
-        node_count = 0;
+        int node_count = 0;
         File file = null;
         BufferedReader reader = null;
         try {

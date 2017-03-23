@@ -1,4 +1,4 @@
-package org.datasyslab.GeoGraphMatch;
+package commons;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

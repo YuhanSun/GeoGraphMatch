@@ -1,11 +1,11 @@
-package org.datasyslab.GeoGraphMatch;
+package commons;
 
 import java.awt.geom.GeneralPath;
 import java.util.ArrayList;
 
 public class Query_Graph {
 	public int[] label_list;
-	ArrayList<ArrayList<Integer>> graph;
+	public ArrayList<ArrayList<Integer>> graph;
 	public MyRectangle[] spa_predicate;
 	public boolean[] Has_Spa_Predicate;
 	
