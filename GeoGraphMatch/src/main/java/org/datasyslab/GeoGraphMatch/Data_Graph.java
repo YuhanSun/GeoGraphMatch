@@ -10,6 +10,10 @@ import java.util.HashMap;
 
 import org.neo4j.helpers.collection.PagingIterator;
 
+import commons.OwnMethods;
+import commons.Pair;
+import commons.*;
+
 public class Data_Graph {
 	public int SIZE_OF_EDGE_MATRIX = 10000;
 	private static final int SIZEOF_INT = 32;

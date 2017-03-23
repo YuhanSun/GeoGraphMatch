@@ -24,6 +24,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import commons.OwnMethods;
+import commons.Query_Graph;
+import commons.*;
+
 public class Minhop_Match {
 	
 	public static boolean TIME_RECORD = true;
@@ -290,14 +294,14 @@ public class Minhop_Match {
 	public Result SubgraphMatch_Spa_API(Query_Graph query_Graph, int limit)
 	{
 		query_node_count = query_Graph.graph.size();
-//		neo4j_time = new int[query_node_count];
-//		hmbr_check_time = new int[query_node_count];
-//		spa_check_time = new int[query_node_count];
+		//		neo4j_time = new int[query_node_count];
+		//		hmbr_check_time = new int[query_node_count];
+		//		spa_check_time = new int[query_node_count];
 
 		int [][] minhop_index = Ini_Minhop(query_Graph);
 
 		String query = FormCypherQuery(query_Graph, limit, minhop_index, true);
-		
+
 		OwnMethods.Print(query);
 		Result result = neo4j_API.graphDb.execute(query);
 		return result;

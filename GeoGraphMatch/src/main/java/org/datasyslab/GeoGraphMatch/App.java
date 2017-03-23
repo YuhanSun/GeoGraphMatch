@@ -2,6 +2,7 @@ package org.datasyslab.GeoGraphMatch;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -13,10 +14,16 @@ import java.util.Queue;
 import javax.management.Query;
 import javax.swing.tree.DefaultMutableTreeNode;
 
+import org.neo4j.cypher.internal.compiler.v2_2.perty.recipe.Pretty.nest;
 import org.neo4j.cypher.internal.compiler.v2_2.planner.logical.greedy.expand;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.Result;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
+
+import commons.OwnMethods;
+import commons.Query_Graph;
+import scala.reflect.internal.Trees.New;
+import commons.*;
 
 /**
  * Hello world!
@@ -36,33 +43,60 @@ public class App
 		String querygraph_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/query_graph.txt";
 		ArrayList<Query_Graph> queryGraphs = Utility.ReadQueryGraph_Spa(querygraph_path, query_id + 1);
 		Query_Graph query_Graph = queryGraphs.get(query_id);
-		double selectivity = 0.000001;
-		String queryrect_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/%s/queryrect_%s.txt", dataset, String.valueOf(selectivity));
+		int name_suffix = 1000;
+		String queryrect_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/spa_predicate/%s/queryrect_%d.txt", dataset, name_suffix);
 		
 		ArrayList<MyRectangle> queryrect = OwnMethods.ReadQueryRectangle(queryrect_path);
+		query_Graph.Has_Spa_Predicate[1] = true;
 		query_Graph.spa_predicate[1] = queryrect.get(0);
-		Naive_Neo4j_Match naive_Neo4j_Match = new Naive_Neo4j_Match(db_path);
-		Result result = naive_Neo4j_Match.Explain_SubgraphMatch_Spa_API(query_Graph, -1);
-//		OwnMethods.Print(result.getExecutionPlanDescription().toString());
-		ExecutionPlanDescription plan = result.getExecutionPlanDescription();
-		OwnMethods.Print(plan.toString());
 		
-		DefaultMutableTreeNode root = OwnMethods.GetExecutionPlanTree(plan, 5);
-		Queue<DefaultMutableTreeNode> queue = new LinkedList<DefaultMutableTreeNode>();
-		queue.add(root);
-		while(queue.isEmpty() == false)
-		{
-			DefaultMutableTreeNode cur_node = queue.poll();
-			String line = "";
-			line = cur_node.getUserObject().toString() + " children:";
-			for (Enumeration<DefaultMutableTreeNode> e = cur_node.children(); e.hasMoreElements();)
-			{
-				DefaultMutableTreeNode child_node = e.nextElement();
-				line += " " + child_node.getUserObject().toString();
-				queue.add(child_node);
-			}
-			OwnMethods.Print(line);
-		}
+		Spa_First spa_First = new Spa_First(db_path, dataset);
+		spa_First.SubgraphMatch_Spa_API(query_Graph, -1);
+		OwnMethods.Print(spa_First.result_count);
+		OwnMethods.Print(spa_First.page_hit_count);
+		OwnMethods.Print(spa_First.postgresql_time);
+		OwnMethods.Print(spa_First.get_iterator_time);
+		OwnMethods.Print(spa_First.iterate_time);
+		spa_First.ShutDown();
+		
+		
+//		Naive_Most_Neo4j_Match naive_Neo4j_Match = new Naive_Most_Neo4j_Match(db_path);
+//		naive_Neo4j_Match.SubgraphMatch_Spa_API(query_Graph, -1);
+//		OwnMethods.Print(naive_Neo4j_Match.result_count);
+		
+//		Minhop_Match naive_Neo4j_Match = new Minhop_Match(db_path);
+//		Result result = naive_Neo4j_Match.SubgraphMatch_Spa_API(query_Graph, -1);
+//		int count = 0;
+//		while(result.hasNext())
+//		{
+//			result.next();
+//			count++;
+//		}
+//		OwnMethods.Print(count);
+			
+		
+//		Naive_Neo4j_Match naive_Neo4j_Match = new Naive_Neo4j_Match(db_path);
+//		Result result = naive_Neo4j_Match.Explain_SubgraphMatch_Spa_API(query_Graph, -1);
+////		OwnMethods.Print(result.getExecutionPlanDescription().toString());
+//		ExecutionPlanDescription plan = result.getExecutionPlanDescription();
+//		OwnMethods.Print(plan.toString());
+//		
+//		DefaultMutableTreeNode root = OwnMethods.GetExecutionPlanTree(plan, 5);
+//		Queue<DefaultMutableTreeNode> queue = new LinkedList<DefaultMutableTreeNode>();
+//		queue.add(root);
+//		while(queue.isEmpty() == false)
+//		{
+//			DefaultMutableTreeNode cur_node = queue.poll();
+//			String line = "";
+//			line = cur_node.getUserObject().toString() + " children:";
+//			for (Enumeration<DefaultMutableTreeNode> e = cur_node.children(); e.hasMoreElements();)
+//			{
+//				DefaultMutableTreeNode child_node = e.nextElement();
+//				line += " " + child_node.getUserObject().toString();
+//				queue.add(child_node);
+//			}
+//			OwnMethods.Print(line);
+//		}
 		
 //		Queue<ExecutionPlanDescription> queue = new LinkedList<ExecutionPlanDescription>();
 //		Queue<ExecutionPlanDescription> result_queue = new LinkedList<ExecutionPlanDescription>();
@@ -94,18 +128,19 @@ public class App
 //			
 //		}
 		
-		naive_Neo4j_Match.neo4j_API.ShutDown();
+//		naive_Neo4j_Match.neo4j_API.ShutDown();
 	}
 	
-	static String dataset = "Gowalla";
-	static int query_id = 9;
+	static String dataset = "foursquare";
+	static int query_id = 0;
 	
     public static void main( String[] args )
     {
 //    	CFLMatch_test(); 
 //    	arbitary();
 //    	neo4j_query_test();
-    	arbitary();
+//    	arbitary();
+    	OwnMethods.Print(new Date());
     }
     
     

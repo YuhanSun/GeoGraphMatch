@@ -18,6 +18,10 @@ import org.apache.lucene.search.FieldCache.IntParser;
 import org.neo4j.kernel.impl.api.operations.EntityWriteOperations;
 import org.neo4j.register.Register.Int;
 
+import commons.OwnMethods;
+import commons.Pair;
+import commons.Query_Graph;
+import commons.*;
 public class CFLMatch {
 
 	private static final boolean RESULT_ENUMERATION = true;

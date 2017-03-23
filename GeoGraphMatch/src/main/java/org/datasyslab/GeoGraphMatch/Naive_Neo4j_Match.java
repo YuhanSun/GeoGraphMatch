@@ -4,6 +4,10 @@ import org.neo4j.graphdb.Result;
 
 import com.google.gson.JsonArray;
 
+import commons.OwnMethods;
+import commons.Query_Graph;
+import commons.*;
+
 public class Naive_Neo4j_Match {
 
 	//neo4j connection

@@ -17,6 +17,10 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
 
+import commons.OwnMethods;
+import commons.Query_Graph;
+import commons.*;
+
 public class Data_Loader {
 	
 	/**
@@ -190,7 +194,7 @@ public class Data_Loader {
 				{
 					String start = list_hmbr[j].substring(0, 2);
 					
-					if(start.equals("0") == false)
+					if(start.equals("1") == true)
 					{
 						String rect = list_hmbr[j].substring(3, list_hmbr[j].length()-1);
 						String[] liString = rect.split(",");
@@ -202,6 +206,156 @@ public class Data_Loader {
 						properties.put(String.format("HMBR_%d_%s", j + 1, miny_name), miny);
 						properties.put(String.format("HMBR_%d_%s", j + 1, maxx_name), maxx);
 						properties.put(String.format("HMBR_%d_%s", j + 1, maxy_name), maxy);
+					}
+					else
+					{
+						properties.put(String.format("HMBR_%d_%s", j + 1, minx_name), 181.0);
+						properties.put(String.format("HMBR_%d_%s", j + 1, miny_name), -91.0);
+						properties.put(String.format("HMBR_%d_%s", j + 1, maxx_name), 181.0);
+						properties.put(String.format("HMBR_%d_%s", j + 1, maxy_name), 90.0);
+					}
+				}
+				
+				int isspatial = Integer.parseInt(list_entity[1]);
+				if(isspatial == 1)
+				{
+					double lon = Double.parseDouble(list_entity[2]);
+					double lat = Double.parseDouble(list_entity[3]);
+					properties.put(lon_name, lon);
+					properties.put(lat_name, lat);
+					Label node_label = DynamicLabel.label("GRAPH_1");
+					inserter.createNode(i, properties, node_label);
+				}
+				else
+				{
+					Label node_label = DynamicLabel.label("GRAPH_0");
+					inserter.createNode(i, properties, node_label);
+				}
+			}
+			
+			RelationshipType edge_label = DynamicRelationshipType.withName("LINK");
+			for(int i = 0; i < node_count; i++)//read edges
+			{
+				line_graph = reader_graph.readLine();
+				String [] list_graph = line_graph.split(",");
+				int start = Integer.parseInt(list_graph[0]);
+				
+				if(i != start)
+				{
+					OwnMethods.Print(line_graph);
+					throw new Exception(String.format("node index inconsistent with line index in %s", graphfile_path));
+				}
+				
+				int neighbor_count = Integer.parseInt(list_graph[1]);
+				
+				for ( int j = 0; j < neighbor_count; j++)
+				{
+					int end = Integer.parseInt(list_graph[j+2]);
+					if(start < end)
+						inserter.createRelationship(start, end, edge_label, null);
+				}
+			}
+			reader_graph.close();
+			reader_entity.close();
+			reader_hmbr.close();
+			inserter.shutdown();
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public static void LoadGraph_Partial_HMBR(String graphfile_path, String entity_path, String hmbr_path,
+			String db_path, ArrayList<Integer> hmbr_index)
+	{
+		BufferedReader reader_graph = null;
+		BufferedReader reader_entity = null;
+		BufferedReader reader_hmbr = null;
+		BatchInserter inserter = null;
+		String line_graph = null;
+		String line_entity = null;
+		String line_hmbr = null;
+		Map<String, String> config = new HashMap<String, String>();
+		config.put("dbms.pagecache.memory", "10g");
+		
+		Config p_Config = new Config();
+		String lon_name = p_Config.GetLongitudePropertyName();
+		String lat_name = p_Config.GetLatitudePropertyName();
+		String[] rect_corner_name = p_Config.GetRectCornerName();
+		String minx_name = rect_corner_name[0];
+		String miny_name = rect_corner_name[1];
+		String maxx_name = rect_corner_name[2];
+		String maxy_name = rect_corner_name[3];
+		
+		try
+		{
+			inserter = BatchInserters.inserter(new File(db_path).getAbsolutePath(),config);
+			reader_graph = new BufferedReader(new FileReader(new File(graphfile_path)));
+			reader_entity = new BufferedReader(new FileReader(new File(entity_path)));
+			reader_hmbr = new BufferedReader(new FileReader(new File(hmbr_path)));
+			line_graph = reader_graph.readLine();
+			line_entity = reader_entity.readLine();
+			line_hmbr = reader_hmbr.readLine();
+			
+			String [] list_hmbr = line_hmbr.split(","); 
+			int node_count = Integer.parseInt(list_hmbr[0]);
+			if(node_count != Integer.parseInt(line_entity) || node_count != Integer.parseInt(line_entity))
+				throw new Exception(String.format("node count mismatch in: %s\n%s\n%s\n", graphfile_path, entity_path, hmbr_path));
+			
+			int hop_num = Integer.parseInt(list_hmbr[1]);
+			
+			for(int i = 0, k = 0; i<node_count; i++)//read nodes and labels
+			{
+				line_entity = reader_entity.readLine();
+				String [] list_entity = line_entity.split(",");
+				
+				line_hmbr = reader_hmbr.readLine();
+				Map<String, Object> properties = new HashMap<String, Object>();
+				
+				if(k < hmbr_index.size())
+				{
+					int hmbr_index_id = hmbr_index.get(k);
+					if(i == hmbr_index_id)
+					{
+						list_hmbr = line_hmbr.split(";");
+						for ( int j = 0; j < hop_num; j++)
+						{
+							String start = list_hmbr[j].substring(0, 1);
+							
+							if(start.equals("1") == true)
+							{
+								String rect = list_hmbr[j].substring(3, list_hmbr[j].length()-1);
+								String[] liString = rect.split(",");
+								double minx = Double.parseDouble(liString[0]);
+								double miny = Double.parseDouble(liString[1]);
+								double maxx = Double.parseDouble(liString[2]);
+								double maxy = Double.parseDouble(liString[3]);
+								properties.put(String.format("HMBR_%d_%s", j + 1, minx_name), minx);
+								properties.put(String.format("HMBR_%d_%s", j + 1, miny_name), miny);
+								properties.put(String.format("HMBR_%d_%s", j + 1, maxx_name), maxx);
+								properties.put(String.format("HMBR_%d_%s", j + 1, maxy_name), maxy);
+							}
+							else
+							{
+								properties.put(String.format("HMBR_%d_%s", j + 1, minx_name), 181.0);
+								properties.put(String.format("HMBR_%d_%s", j + 1, miny_name), 91.0);
+								properties.put(String.format("HMBR_%d_%s", j + 1, maxx_name), -181.0);
+								properties.put(String.format("HMBR_%d_%s", j + 1, maxy_name), -91.0);
+							}
+						}
+						k++;
+					}
+					else
+					{
+						for ( int j = 0; j < hop_num; j++)
+						{
+							properties.put(String.format("HMBR_%d_%s", j + 1, minx_name), -181.0);
+							properties.put(String.format("HMBR_%d_%s", j + 1, miny_name), -91.0);
+							properties.put(String.format("HMBR_%d_%s", j + 1, maxx_name), 181.0);
+							properties.put(String.format("HMBR_%d_%s", j + 1, maxy_name), 91.0);
+							
+						}
 					}
 				}
 				
@@ -406,6 +560,23 @@ public class Data_Loader {
 		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_"+dataset+"/data/graph.db";
 		LoadGraph(graphfile_path, entity_path, hmbr_path, db_path);
 	}
+	
+	public static void LoadGraph_Partial_HMBR()
+	{
+		int name_suffix = 250000;
+		while (name_suffix < 800000)
+		{
+			String graphfile_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/" + dataset + "/graph.txt";
+			String entity_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/" + dataset + "/entity.txt";
+			String hmbr_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/" + dataset + "/HMBR.txt";
+			String hmbr_index_path = String.format("/mnt/hgfs/Ubuntu_shared/GeoMinHop/data/%s/HMBR_%d_index.txt", dataset, name_suffix);
+			ArrayList<Integer> hmbr_index = OwnMethods.ReadCenterID(hmbr_index_path);
+			String db_path = String.format("/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_%s_%d/data/graph.db", dataset, name_suffix);
+			
+			LoadGraph_Partial_HMBR(graphfile_path, entity_path, hmbr_path, db_path, hmbr_index);
+			name_suffix += 250000;
+		}
+	}
 
 	/**
 	 * load graph with cfl format
@@ -432,10 +603,11 @@ public class Data_Loader {
 		LoadQueryGraph(query_Graphs, db_path);
 	}
 	
-	static String dataset = "foursquare";
+	static String dataset = "Gowalla";
 	
 	public static void main(String[] args) {
-		LoadGraph();
+//		LoadGraph();
+		LoadGraph_Partial_HMBR();
 //		LoadQueryGraph();
 	}
 
