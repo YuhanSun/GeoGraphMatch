@@ -619,7 +619,7 @@ public class Experiment {
 		int limit = -1;
 		int expe_count = 5;
 		
-		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_Gowalla/data/graph.db";
+		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_"+dataset+"/data/graph.db";
 		
 		String querygraph_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/query_graph.txt";
 		ArrayList<Query_Graph> queryGraphs = Utility.ReadQueryGraphs(querygraph_path, 1);
@@ -790,7 +790,7 @@ public class Experiment {
 		int limit = -1;
 		int expe_count = 10;
 		
-		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_Gowalla/data/graph.db";
+		String db_path = "/home/yuhansun/Documents/GeoGraphMatchData/neo4j-community-2.3.3_"+dataset+"/data/graph.db";
 		
 		String querygraph_path = "/mnt/hgfs/Ubuntu_shared/GeoMinHop/query/query_graph.txt";
 		ArrayList<Query_Graph> queryGraphs = Utility.ReadQueryGraphs(querygraph_path, 3);

@@ -475,4 +475,71 @@ public class Utility {
 		
 		return query;
 	}
+	
+	/**
+     * for the cypher query for profile or explain with given query graph
+     * @param query_Graph
+     * @param limit
+     * @param Profile_Or_Explain	set to 1 if profile, -1 if Explain, otherwise 0
+     * @return
+     */
+	public static String FormCypherQuery(Query_Graph query_Graph, int limit, int Profile_Or_Explain,  String lon_name, String lat_name)
+	{
+		String query = "";
+		if(Profile_Or_Explain == 1)
+			query += "profile match ";
+		else if (Profile_Or_Explain == -1) {
+			query += "explain match ";
+		}
+		else {
+			query += "match ";
+		}
+		
+		//label
+		query += String.format("(a0:GRAPH_%d)", query_Graph.label_list[0]);
+		for(int i = 1; i < query_Graph.graph.size(); i++)
+		{
+			query += String.format(",(a%d:GRAPH_%d)",i, query_Graph.label_list[i]);
+		}
+		
+		//edge
+		for(int i = 0; i<query_Graph.graph.size(); i++)
+		{
+			for(int j = 0;j<query_Graph.graph.get(i).size();j++)
+			{
+				int neighbor = query_Graph.graph.get(i).get(j);
+				if(neighbor > i)
+					query += String.format(",(a%d)--(a%d)", i, neighbor);
+			}
+		}
+		
+		//spatial predicate
+		int i = 0;
+		for(; i < query_Graph.label_list.length; i++)
+			if(query_Graph.spa_predicate[i] != null)
+			{
+				MyRectangle qRect = query_Graph.spa_predicate[i];
+				query += String.format(" where %f <= a%d.%s <= %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f <= a%d.%s <= %f", qRect.min_y, i, lat_name, qRect.max_y);
+				i++;
+				break; 
+			}
+		for(; i < query_Graph.label_list.length; i++)
+			if(query_Graph.spa_predicate[i] != null)
+			{
+				MyRectangle qRect = query_Graph.spa_predicate[i];
+				query += String.format(" and %f <= a%d.%s <= %f ", qRect.min_x, i, lon_name, qRect.max_x);
+				query += String.format("and %f <= a%d.%s <= %f", qRect.min_y, i, lat_name, qRect.max_y);
+			}
+		
+		//return
+		query += " return a0";
+		for(i = 1; i<query_Graph.graph.size(); i++)
+			query += String.format(",a%d", i);
+		
+		if(limit != -1)
+			query += String.format(" limit %d", limit);
+		
+		return query;
+	}
 }

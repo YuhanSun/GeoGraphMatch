@@ -28,6 +28,11 @@ import commons.OwnMethods;
 import commons.Query_Graph;
 import commons.*;
 
+/**
+ * this class integrates HMBR
+ * @author yuhansun
+ *
+ */
 public class Minhop_Match {
 	
 	public static boolean TIME_RECORD = true;

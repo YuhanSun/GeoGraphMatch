@@ -8,6 +8,14 @@ import commons.OwnMethods;
 import commons.Query_Graph;
 import commons.*;
 
+/**
+ * this class is graphfirst approach,
+ * spatial predicate is checked during
+ * graph search. (spatial predicate is
+ * integrated into cypher query)
+ * @author yuhansun
+ *
+ */
 public class Naive_Neo4j_Match {
 
 	//neo4j connection

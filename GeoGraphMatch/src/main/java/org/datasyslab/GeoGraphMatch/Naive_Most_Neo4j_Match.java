@@ -15,6 +15,14 @@ import commons.OwnMethods;
 import commons.Query_Graph;
 import commons.*;
 
+
+/**
+ * this class match the graph pattern
+ * without spatial, after find all match
+ * for graph, then apply spatial predicate
+ * @author yuhansun
+ *
+ */
 public class Naive_Most_Neo4j_Match {
 
 		//neo4j connection

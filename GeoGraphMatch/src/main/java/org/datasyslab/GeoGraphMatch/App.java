@@ -31,6 +31,9 @@ import commons.*;
  */
 public class App 
 {
+	static Config config = new Config();
+	static String lon_name = config.GetLongitudePropertyName();
+	static String lat_name = config.GetLatitudePropertyName();
 	public static void arbitary()
 	{
 //		String query = "match (a0)--(a1),(a0)--(a2),(a0)--(a3),(a0)--(a4),(a1)--(a0),(a1)--(a7),(a2)--(a0),(a2)--(a4),(a3)--(a0),(a3)--(a4),(a4)--(a0),(a4)--(a2),(a4)--(a3),(a4)--(a5),(a4)--(a6),(a4)--(a7),(a5)--(a4),(a5)--(a6),(a5)--(a7),(a6)--(a4),(a6)--(a5),(a6)--(a7),(a7)--(a1),(a7)--(a4),(a7)--(a5),(a7)--(a6),(a7)--(a8),(a8)--(a7),(a8)--(a9),(a9)--(a8) where id(a0) = 1423 and id(a1) = 1421 and id(a2) = 1427 and id(a3) = 1430 and id(a4) = 1417 and id(a5) = 1422 and id(a6) = 1420 and id(a7) = 1418 and id(a8) = 2594 and id(a9) = 1761 return a0,a1,a2,a3,a4,a5,a6,a7,a8,a9";
@@ -50,14 +53,20 @@ public class App
 		query_Graph.Has_Spa_Predicate[1] = true;
 		query_Graph.spa_predicate[1] = queryrect.get(0);
 		
-		Spa_First spa_First = new Spa_First(db_path, dataset);
-		spa_First.SubgraphMatch_Spa_API(query_Graph, -1);
-		OwnMethods.Print(spa_First.result_count);
-		OwnMethods.Print(spa_First.page_hit_count);
-		OwnMethods.Print(spa_First.postgresql_time);
-		OwnMethods.Print(spa_First.get_iterator_time);
-		OwnMethods.Print(spa_First.iterate_time);
-		spa_First.ShutDown();
+		Neo4j_API neo4j_API = new Neo4j_API(db_path);
+		String query = Utility.FormCypherQuery(query_Graph, -1, -1, lon_name, lat_name);
+		Result result = neo4j_API.graphDb.execute(query);
+		OwnMethods.Print(result.getExecutionPlanDescription());
+		neo4j_API.ShutDown();
+		
+//		Spa_First spa_First = new Spa_First(db_path, dataset);
+//		spa_First.SubgraphMatch_Spa_API(query_Graph, -1);
+//		OwnMethods.Print(spa_First.result_count);
+//		OwnMethods.Print(spa_First.page_hit_count);
+//		OwnMethods.Print(spa_First.postgresql_time);
+//		OwnMethods.Print(spa_First.get_iterator_time);
+//		OwnMethods.Print(spa_First.iterate_time);
+//		spa_First.ShutDown();
 		
 		
 //		Naive_Most_Neo4j_Match naive_Neo4j_Match = new Naive_Most_Neo4j_Match(db_path);
@@ -131,7 +140,7 @@ public class App
 //		naive_Neo4j_Match.neo4j_API.ShutDown();
 	}
 	
-	static String dataset = "foursquare";
+	static String dataset = "Gowalla";
 	static int query_id = 0;
 	
     public static void main( String[] args )
@@ -139,8 +148,8 @@ public class App
 //    	CFLMatch_test(); 
 //    	arbitary();
 //    	neo4j_query_test();
-//    	arbitary();
-    	OwnMethods.Print(new Date());
+    	arbitary();
+//    	OwnMethods.Print(new Date());
     }
     
     
