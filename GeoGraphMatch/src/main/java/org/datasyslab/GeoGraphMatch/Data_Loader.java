@@ -25,6 +25,7 @@ public class Data_Loader {
 	
 	/**
 	 * load graph, entity, hrmbr (is stored with arraylist) with my format
+	 * It's hard to query because the format cannot be integrated in cypher.
 	 * @param graphfile_path
 	 * @param entity_path
 	 * @param hmbr_path
@@ -210,9 +211,9 @@ public class Data_Loader {
 					else
 					{
 						properties.put(String.format("HMBR_%d_%s", j + 1, minx_name), 181.0);
-						properties.put(String.format("HMBR_%d_%s", j + 1, miny_name), -91.0);
-						properties.put(String.format("HMBR_%d_%s", j + 1, maxx_name), 181.0);
-						properties.put(String.format("HMBR_%d_%s", j + 1, maxy_name), 90.0);
+						properties.put(String.format("HMBR_%d_%s", j + 1, miny_name), 91.0);
+						properties.put(String.format("HMBR_%d_%s", j + 1, maxx_name), -181.0);
+						properties.put(String.format("HMBR_%d_%s", j + 1, maxy_name), -91.0);
 					}
 				}
 				
