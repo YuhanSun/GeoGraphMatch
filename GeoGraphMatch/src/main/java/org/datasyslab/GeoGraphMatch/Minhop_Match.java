@@ -45,6 +45,7 @@ public class Minhop_Match {
 	//neo4j graphdb service
 	public Neo4j_API neo4j_API;
 	
+	//HMBR
 	String minx_name;
 	String miny_name;
 	String maxx_name;
@@ -276,6 +277,12 @@ public class Minhop_Match {
 //				return maps;
 //	}
 	
+	/**
+	 * Query using neo4j connection
+	 * @param query_Graph
+	 * @param limit
+	 * @return
+	 */
 	public JsonArray SubgraphMatch_Spa(Query_Graph query_Graph, int limit)
 	{
 		query_node_count = query_Graph.graph.size();
@@ -296,6 +303,12 @@ public class Minhop_Match {
 		return jsonArray;
 	}
 	
+	/**
+	 * Query using graph database service.
+	 * @param query_Graph
+	 * @param limit
+	 * @return
+	 */
 	public Result SubgraphMatch_Spa_API(Query_Graph query_Graph, int limit)
 	{
 		query_node_count = query_Graph.graph.size();
