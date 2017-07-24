@@ -193,7 +193,7 @@ public class Data_Loader {
 				
 				for ( int j = 0; j < hop_num; j++)
 				{
-					String start = list_hmbr[j].substring(0, 2);
+					String start = list_hmbr[j].substring(0, 1);
 					
 					if(start.equals("1") == true)
 					{
@@ -207,13 +207,6 @@ public class Data_Loader {
 						properties.put(String.format("HMBR_%d_%s", j + 1, miny_name), miny);
 						properties.put(String.format("HMBR_%d_%s", j + 1, maxx_name), maxx);
 						properties.put(String.format("HMBR_%d_%s", j + 1, maxy_name), maxy);
-					}
-					else
-					{
-						properties.put(String.format("HMBR_%d_%s", j + 1, minx_name), 181.0);
-						properties.put(String.format("HMBR_%d_%s", j + 1, miny_name), 91.0);
-						properties.put(String.format("HMBR_%d_%s", j + 1, maxx_name), -181.0);
-						properties.put(String.format("HMBR_%d_%s", j + 1, maxy_name), -91.0);
 					}
 				}
 				
@@ -267,6 +260,14 @@ public class Data_Loader {
 		}
 	}
 	
+	/**
+	 * Assume that only partial nodes in the graph have HMBR
+	 * @param graphfile_path
+	 * @param entity_path
+	 * @param hmbr_path
+	 * @param db_path
+	 * @param hmbr_index
+	 */
 	public static void LoadGraph_Partial_HMBR(String graphfile_path, String entity_path, String hmbr_path,
 			String db_path, ArrayList<Integer> hmbr_index)
 	{
